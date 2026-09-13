@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Vidéos — Claudel média</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="public.js"></script>
+
+</head>
+
+<body>
+
+<button id="menuToggle" class="menu-toggle">
+    <span>☰</span>
+</button>
+
+<aside id="sidebar" class="sidebar">
+
+    <div class="logo">
+        <div class="logo-badge">C</div>
+        <img data-logo alt="Logo">
+        <span class="text" data-setting="site_name">Claudel Média</span>
+    </div>
+
+    <div class="sidebar-label">Navigation</div>
+
+    <nav id="sidebarNav">
+        <a href="index.html">
+            <span class="icon">🏠</span>
+            <span class="text">Accueil</span>
+        </a>
+        <a href="videos.html">
+            <span class="icon">🎥</span>
+            <span class="text">Vidéos</span>
+        </a>
+        <a href="journaux.html">
+            <span class="icon">📰</span>
+            <span class="text">Journaux</span>
+        </a>
+        <a href="podcasts.html">
+            <span class="icon">🎙️</span>
+            <span class="text">Podcasts</span>
+        </a>
+        <a href="radio.html">
+            <span class="icon">📻</span>
+            <span class="text">Radio</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-footer-text">© 2026 Claudel média</div>
+    </div>
+
+</aside>
+
+<div id="pageContent" class="page-content">
+
+<section class="page-hero">
+    <h1>Vidéos</h1>
+    <p>Les reportages, émissions et créations de Claudel média.</p>
+</section>
+
+<main class="container">
+
+    <div id="videos" class="grid">
+        <div class="empty">Chargement des vidéos...</div>
+    </div>
+
+</main>
+
+<footer>
+    © 2026 Claudel média — Collège catholique Samuel-Genest
+</footer>
+
+</div>
+
+<script>
+
+async function loadVideos() {
+
+    const container = document.getElementById("videos");
+
+    const { data, error } = await supabaseClient
+        .from("videos")
+        .select("*")
+        .eq("published", true)
+        .order("created_at", { ascending: false });
+
+    if (error) {
+
+        console.error(error);
+
+        container.innerHTML =
+            '<div class="empty">Impossible de charger les vidéos.</div>';
+
+        return;
+    }
+
+    if (!data || data.length === 0) {
+
+        container.innerHTML =
+            '<div class="empty">Aucune vidéo publiée pour le moment.</div>';
+
+        return;
+    }
+
+    container.innerHTML = "";
+
+    data.forEach(video => {
+
+        const card = document.createElement("article");
+
+        card.className = "card";
+
+        card.innerHTML = `
+
+            <video controls preload="metadata"
+                ${video.thumbnail_url ? `poster="${video.thumbnail_url}"` : ""}>
+                <source src="${video.video_url}">
+                Votre navigateur ne supporte pas la vidéo.
+            </video>
+
+            <h2>${escapeHTML(video.title)}</h2>
+
+            <p>${escapeHTML(video.description || "")}</p>
+
+            <div class="date">
+                ${new Date(video.created_at).toLocaleDateString("fr-CA")}
+            </div>
+
+        `;
+
+        container.appendChild(card);
+
+    });
+}
+
+function escapeHTML(text) {
+
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+loadVideos();
+
+</script>
+
+</body>
+</html>

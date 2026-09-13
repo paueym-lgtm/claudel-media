@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Claudel média</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="config.js"></script>
+
+    <script src="public.js"></script>
+
+</head>
+
+
+<body>
+
+<canvas id="mystifyCanvas"></canvas>
+
+
+<!-- =========================
+SIDEBAR
+========================= -->
+
+<button id="menuToggle" class="menu-toggle">
+    <span>☰</span>
+</button>
+
+<aside id="sidebar" class="sidebar">
+
+    <div class="logo">
+
+        <div class="logo-badge">C</div>
+
+        <img data-logo alt="Logo">
+
+        <span class="text" data-setting="site_name">
+            Claudel Média
+        </span>
+
+    </div>
+
+    <div class="sidebar-label">Navigation</div>
+
+    <nav id="sidebarNav">
+
+        <a href="index.html">
+            <span class="icon">🏠</span>
+            <span class="text">Accueil</span>
+        </a>
+
+        <a href="videos.html">
+            <span class="icon">🎥</span>
+            <span class="text">Vidéos</span>
+        </a>
+
+        <a href="journaux.html">
+            <span class="icon">📰</span>
+            <span class="text">Journaux</span>
+        </a>
+
+        <a href="podcasts.html">
+            <span class="icon">🎙️</span>
+            <span class="text">Podcasts</span>
+        </a>
+
+        <a href="radio.html">
+            <span class="icon">📻</span>
+            <span class="text">Radio</span>
+        </a>
+
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-footer-text">© 2026 Claudel média</div>
+    </div>
+
+</aside>
+
+<div id="pageContent" class="page-content">
+
+
+<main>
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <div class="eyebrow"
+             data-setting="slogan">
+
+            L'information. Autrement.
+
+        </div>
+
+
+        <h1 data-setting="home_title">
+
+            Claudel média
+
+        </h1>
+
+
+        <h2 data-setting="home_subtitle">
+
+            La voix des élèves.
+
+        </h2>
+
+
+        <p data-setting="home_description">
+
+            Retrouvez toute l'actualité du lycée,
+            nos émissions radio, nos vidéos,
+            nos podcasts et nos journaux.
+
+        </p>
+
+    </div>
+
+</section>
+
+<section class="news-section">
+
+    <div class="news-header">
+        <h3><span class="news-live-dot"></span> Dernières actus</h3>
+    </div>
+
+    <div class="news-box" id="newsBox">
+        <!-- Rempli par showNewsItem() ci-dessous -->
+    </div>
+
+    <div class="news-dots" id="newsDots"></div>
+
+</section>
+
+</main>
+
+
+<footer>
+
+    <p data-setting="footer_text">
+
+        © Claudel média — Tous droits réservés.
+
+    </p>
+
+</footer>
+
+</div>
+
+<script>
+
+/* ==============================
+   NEWS TICKER
+   ------------------------------
+   Va chercher les items publiés dans les tables
+   "journaux", "podcasts" et "emissions" (la radio),
+   les fusionne, les trie par date et garde les 10
+   plus récents.
+============================== */
+
+const NEWS_ICONS = {
+    podcast: "🎙️",
+    journal: "📰",
+    radio: "📻"
+};
+
+function escapeHTML(text) {
+
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+function formatNewsDate(iso) {
+
+    try {
+        return new Date(iso).toLocaleDateString("fr-FR", {
+            day: "numeric",
+            month: "short",
+            year: "numeric"
+        });
+    } catch {
+        return "";
+    }
+
+}
+
+async function fetchLatestNews() {
+
+    const [journauxRes, podcastsRes, emissionsRes] = await Promise.all([
+
+        supabaseClient
+            .from("journaux")
+            .select("title, created_at, cover_url")
+            .eq("published", true)
+            .order("created_at", { ascending: false })
+            .limit(10),
+
+        supabaseClient
+            .from("podcasts")
+            .select("title, created_at, cover_url")
+            .eq("published", true)
+            .order("created_at", { ascending: false })
+            .limit(10),
+
+        supabaseClient
+            .from("emissions")
+            .select("title, created_at, cover_url")
+            .eq("published", true)
+            .order("created_at", { ascending: false })
+            .limit(10)
+
+    ]);
+
+    const items = [];
+
+    if (journauxRes.error) {
+        console.error("Erreur journaux :", journauxRes.error);
+    } else {
+        journauxRes.data.forEach(row => items.push({
+            type: "journal",
+            title: row.title,
+            date: row.created_at,
+            cover: row.cover_url,
+            href: "journaux.html"
+        }));
+    }
+
+    if (podcastsRes.error) {
+        console.error("Erreur podcasts :", podcastsRes.error);
+    } else {
+        podcastsRes.data.forEach(row => items.push({
+            type: "podcast",
+            title: row.title,
+            date: row.created_at,
+            cover: row.cover_url,
+            href: "podcasts.html"
+        }));
+    }
+
+    if (emissionsRes.error) {
+        console.error("Erreur emissions :", emissionsRes.error);
+    } else {
+        emissionsRes.data.forEach(row => items.push({
+            type: "radio",
+            title: row.title,
+            date: row.created_at,
+            cover: row.cover_url,
+            href: "radio.html"
+        }));
+    }
+
+    items.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    return items.slice(0, 10);
+
+}
+
+let newsItems = [];
+let newsIndex = 0;
+let newsTimer = null;
+
+function renderNews(items) {
+
+    newsItems = items || [];
+    newsIndex = 0;
+
+    const box = document.getElementById("newsBox");
+    const dots = document.getElementById("newsDots");
+
+    if (newsTimer) {
+        clearInterval(newsTimer);
+        newsTimer = null;
+    }
+
+    if (newsItems.length === 0) {
+        box.innerHTML = '<div class="news-empty">Aucune actualité pour le moment.</div>';
+        dots.innerHTML = "";
+        return;
+    }
+
+    dots.innerHTML = newsItems.map((_, i) =>
+        `<div class="news-dot${i === 0 ? " active" : ""}"></div>`
+    ).join("");
+
+    showNewsItem(0);
+
+    if (newsItems.length > 1) {
+        newsTimer = setInterval(() => {
+            newsIndex = (newsIndex + 1) % newsItems.length;
+            showNewsItem(newsIndex);
+        }, 4500);
+    }
+
+}
+
+function showNewsItem(index) {
+
+    const item = newsItems[index];
+    const box = document.getElementById("newsBox");
+
+    box.innerHTML = `
+        <a class="news-item" href="${item.href}">
+            <div class="news-tag" ${item.cover ? `style="background-image:url('${escapeHTML(item.cover)}');background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#fff;font-size:0;"` : ""}>${item.cover ? "" : (NEWS_ICONS[item.type] || "📌")}</div>
+            <div class="news-info">
+                <div class="news-title">${escapeHTML(item.title)}</div>
+                <div class="news-meta">${item.type} · ${formatNewsDate(item.date)}</div>
+            </div>
+        </a>
+    `;
+
+    document.querySelectorAll("#newsDots .news-dot").forEach((dot, i) => {
+        dot.classList.toggle("active", i === index);
+    });
+
+}
+
+fetchLatestNews()
+    .then(renderNews)
+    .catch(err => {
+        console.error("Erreur chargement des actus :", err);
+        renderNews([]);
+    });
+
+
+/* ==============================
+   FOND ANIMÉ FAÇON "MYSTIFY"
+   ------------------------------
+   Quelques formes aux coins rebondissants,
+   reliées par des lignes colorées, avec une
+   légère traînée qui s'estompe.
+============================== */
+
+(function mystifyBackground() {
+
+    const canvas = document.getElementById("mystifyCanvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    const COLORS = ["#FF6A4D", "#FFC94A", "#3FC9B8", "#9B8AFB"];
+
+    let width, height;
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    function makePoint() {
+        return {
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 1.6,
+            vy: (Math.random() - 0.5) * 1.6
+        };
+    }
+
+    function makeShape(color, pointCount) {
+        const points = [];
+        for (let i = 0; i < pointCount; i++) {
+            points.push(makePoint());
+        }
+        return { points, color };
+    }
+
+    // Deux formes (quadrilatères), chacune dans une couleur du thème
+    const shapes = [
+        makeShape(COLORS[0], 4),
+        makeShape(COLORS[2], 4)
+    ];
+
+    function step(point) {
+
+        point.x += point.vx;
+        point.y += point.vy;
+
+        if (point.x <= 0 || point.x >= width) point.vx *= -1;
+        if (point.y <= 0 || point.y >= height) point.vy *= -1;
+
+        point.x = Math.max(0, Math.min(width, point.x));
+        point.y = Math.max(0, Math.min(height, point.y));
+
+    }
+
+    function draw() {
+
+        // Voile translucide couleur du fond : crée la traînée qui s'estompe
+        ctx.fillStyle = "rgba(255,249,242,0.06)";
+        ctx.fillRect(0, 0, width, height);
+
+        shapes.forEach(shape => {
+
+            shape.points.forEach(step);
+
+            ctx.beginPath();
+            shape.points.forEach((p, i) => {
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.closePath();
+
+            ctx.strokeStyle = shape.color;
+            ctx.globalAlpha = 0.35;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.fillStyle = shape.color;
+            ctx.globalAlpha = 0.05;
+            ctx.fill();
+
+            ctx.globalAlpha = 1;
+
+        });
+
+        requestAnimationFrame(draw);
+
+    }
+
+    draw();
+
+})();
+
+</script>
+</body>
+
+</html>

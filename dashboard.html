@@ -1,0 +1,2645 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Dashboard — Claudel média</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #090909;
+    color: white;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 250px;
+    height: 100vh;
+    background: #111;
+    border-right: 1px solid #292929;
+    padding: 25px 15px;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 900;
+    padding: 0 15px 30px;
+}
+
+.logo span {
+    color: #e30613;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.menu button {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: #999;
+    padding: 14px 15px;
+    text-align: left;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.menu button:hover {
+    background: #1d1d1d;
+    color: white;
+}
+
+.menu button.active {
+    background: #e30613;
+    color: white;
+}
+
+.logout {
+    position: absolute;
+    bottom: 25px;
+    left: 15px;
+    width: calc(100% - 30px);
+    padding: 13px;
+    background: #222;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.logout:hover {
+    background: #333;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main {
+    margin-left: 250px;
+    padding: 40px;
+    min-height: 100vh;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 35px;
+}
+
+.topbar h1 {
+    font-size: 32px;
+}
+
+.user {
+    color: #888;
+    font-size: 14px;
+}
+
+/* =========================
+   SECTIONS
+========================= */
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+/* =========================
+   STATS
+========================= */
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 35px;
+}
+
+.stat {
+    background: #151515;
+    border: 1px solid #252525;
+    border-radius: 14px;
+    padding: 25px;
+}
+
+.stat-icon {
+    font-size: 30px;
+    margin-bottom: 15px;
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: 900;
+}
+
+.stat-label {
+    color: #888;
+    margin-top: 5px;
+}
+
+/* =========================
+   CARDS
+========================= */
+
+.panel {
+    background: #131313;
+    border: 1px solid #252525;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.panel h2 {
+    margin-bottom: 20px;
+}
+
+.panel h3 {
+    margin-bottom: 15px;
+}
+
+/* =========================
+   FORMS
+========================= */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.form-full {
+    grid-column: 1 / -1;
+}
+
+label {
+    display: block;
+    margin-bottom: 7px;
+    color: #aaa;
+    font-size: 14px;
+}
+
+input,
+textarea,
+select {
+    width: 100%;
+    background: #090909;
+    border: 1px solid #333;
+    color: white;
+    padding: 13px;
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+}
+
+textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #e30613;
+}
+
+input[type="color"] {
+    height: 50px;
+    padding: 4px;
+    cursor: pointer;
+}
+
+input[type="file"] {
+    padding: 10px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+.btn {
+    border: none;
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #e30613;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #c90511;
+}
+
+.btn-secondary {
+    background: #292929;
+    color: white;
+}
+
+.btn-danger {
+    background: #7c1017;
+    color: white;
+}
+
+.btn-success {
+    background: #176b3a;
+    color: white;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+/* =========================
+   CONTENT LIST
+========================= */
+
+.content-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.content-item {
+    background: #191919;
+    border: 1px solid #292929;
+    padding: 18px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.content-info {
+    min-width: 0;
+}
+
+.content-title {
+    font-weight: bold;
+    font-size: 17px;
+}
+
+.content-description {
+    color: #888;
+    margin-top: 6px;
+    font-size: 14px;
+}
+
+.status {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status.published {
+    background: #123d27;
+    color: #5ee894;
+}
+
+.status.hidden {
+    background: #3b1717;
+    color: #ff7373;
+}
+
+/* =========================
+   SETTINGS
+========================= */
+
+.setting-section {
+    margin-bottom: 35px;
+}
+
+.setting-section h3 {
+    font-size: 20px;
+    margin-bottom: 18px;
+}
+
+.color-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* =========================
+   NOTIFICATION
+========================= */
+
+#notification {
+    position: fixed;
+    right: 25px;
+    bottom: 25px;
+    background: #1d1d1d;
+    border: 1px solid #333;
+    padding: 15px 20px;
+    border-radius: 10px;
+    display: none;
+    z-index: 999;
+}
+
+#notification.success {
+    border-color: #176b3a;
+}
+
+#notification.error {
+    border-color: #8b1b22;
+}
+
+/* =========================
+   LOADING
+========================= */
+
+.loading {
+    color: #777;
+    padding: 30px;
+    text-align: center;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media(max-width:1000px) {
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-full {
+        grid-column: auto;
+    }
+
+}
+
+@media(max-width:750px) {
+
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #292929;
+    }
+
+    .logout {
+        position: static;
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    .main {
+        margin-left: 0;
+        padding: 20px;
+    }
+
+    .content-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================
+     SIDEBAR
+========================= -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        claudel <span>média.</span>
+    </div>
+
+    <div class="menu">
+
+        <button class="active" onclick="showPage('overview', this)">
+            📊 Vue d'ensemble
+        </button>
+
+        <button onclick="showPage('videos', this)">
+            🎬 Vidéos
+        </button>
+
+        <button onclick="showPage('journaux', this)">
+            📰 Journaux
+        </button>
+
+        <button onclick="showPage('podcasts', this)">
+            🎙️ Podcasts
+        </button>
+
+        <button onclick="showPage('radio', this)">
+            📻 Radio
+        </button>
+
+        <button onclick="showPage('settings', this)">
+            ⚙️ Apparence & contenu
+        </button>
+
+    </div>
+
+    <button class="logout" onclick="logout()">
+        Déconnexion
+    </button>
+
+</aside>
+
+
+<!-- =========================
+     MAIN
+========================= -->
+
+<main class="main">
+
+<div class="topbar">
+
+    <h1 id="pageTitle">
+        Vue d'ensemble
+    </h1>
+
+    <div class="user" id="userEmail">
+        Chargement...
+    </div>
+
+</div>
+
+
+<!-- =========================
+     OVERVIEW
+========================= -->
+
+<section id="overview" class="page active">
+
+    <div class="stats">
+
+        <div class="stat">
+            <div class="stat-icon">🎬</div>
+            <div class="stat-number" id="videoCount">0</div>
+            <div class="stat-label">Vidéos</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-icon">📰</div>
+            <div class="stat-number" id="journalCount">0</div>
+            <div class="stat-label">Journaux</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-icon">🎙️</div>
+            <div class="stat-number" id="podcastCount">0</div>
+            <div class="stat-label">Podcasts</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-icon">📻</div>
+            <div class="stat-number" id="emissionCount">0</div>
+            <div class="stat-label">Émissions</div>
+        </div>
+
+    </div>
+
+    <div class="panel">
+
+        <h2>Bienvenue dans Claudel média</h2>
+
+        <p style="color:#999;line-height:1.6;">
+            Depuis ce tableau de bord, tu peux gérer tout le contenu
+            publié sur le site ainsi que son apparence.
+        </p>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     VIDEOS
+========================= -->
+
+<section id="videos" class="page">
+
+    <div class="panel">
+
+        <h2>Ajouter une vidéo</h2>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Titre</label>
+                <input id="videoTitle" type="text">
+            </div>
+
+            <div>
+                <label>Description</label>
+                <input id="videoDescription" type="text">
+            </div>
+
+            <div>
+                <label>Fichier vidéo</label>
+                <input id="videoFile" type="file" accept="video/*">
+            </div>
+
+            <div>
+                <label>Miniature (optionnel)</label>
+                <input id="videoThumbnail" type="file" accept="image/*">
+            </div>
+
+        </div>
+
+        <div class="actions">
+
+            <button class="btn btn-primary" onclick="uploadVideo()">
+                📤 Ajouter la vidéo
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="panel">
+
+        <h2>Vidéos existantes</h2>
+
+        <div id="videoList" class="content-list">
+            <div class="loading">Chargement...</div>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     JOURNAUX
+========================= -->
+
+<section id="journaux" class="page">
+
+    <div class="panel">
+
+        <h2>Ajouter un journal</h2>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Titre</label>
+                <input id="journalTitle" type="text">
+            </div>
+
+            <div>
+                <label>Description</label>
+                <input id="journalDescription" type="text">
+            </div>
+
+            <div class="form-full">
+                <label>Fichier PDF</label>
+                <input id="journalFile" type="file" accept=".pdf">
+            </div>
+
+            <div class="form-full">
+                <label>Image de couverture (optionnel)</label>
+                <input id="journalCover" type="file" accept="image/*">
+            </div>
+
+        </div>
+
+        <div class="actions">
+
+            <button class="btn btn-primary" onclick="uploadJournal()">
+                📤 Ajouter le journal
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="panel">
+
+        <h2>Journaux existants</h2>
+
+        <div id="journalList" class="content-list">
+            <div class="loading">Chargement...</div>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     PODCASTS
+========================= -->
+
+<section id="podcasts" class="page">
+
+    <div class="panel">
+
+        <h2>Ajouter un podcast</h2>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Titre</label>
+                <input id="podcastTitle" type="text">
+            </div>
+
+            <div>
+                <label>Description</label>
+                <input id="podcastDescription" type="text">
+            </div>
+
+            <div class="form-full">
+                <label>Fichier audio</label>
+                <input id="podcastFile" type="file" accept="audio/*">
+            </div>
+
+            <div class="form-full">
+                <label>Image de couverture (optionnel)</label>
+                <input id="podcastCover" type="file" accept="image/*">
+            </div>
+
+        </div>
+
+        <div class="actions">
+
+            <button class="btn btn-primary" onclick="uploadPodcast()">
+                📤 Ajouter le podcast
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="panel">
+
+        <h2>Podcasts existants</h2>
+
+        <div id="podcastList" class="content-list">
+            <div class="loading">Chargement...</div>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     RADIO
+========================= -->
+
+<section id="radio" class="page">
+
+    <div class="panel">
+
+        <h2>Ajouter une émission</h2>
+
+        <div class="form-grid">
+
+            <div>
+                <label>Titre</label>
+                <input id="emissionTitle" type="text">
+            </div>
+
+            <div>
+                <label>Description</label>
+                <input id="emissionDescription" type="text">
+            </div>
+
+            <div class="form-full">
+                <label>Fichier audio</label>
+                <input id="emissionFile" type="file" accept="audio/*">
+            </div>
+
+            <div class="form-full">
+                <label>Image de couverture (optionnel)</label>
+                <input id="emissionCover" type="file" accept="image/*">
+            </div>
+
+        </div>
+
+        <div class="actions">
+
+            <button class="btn btn-primary" onclick="uploadEmission()">
+                📤 Ajouter l'émission
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="panel">
+
+        <h2>Émissions existantes</h2>
+
+        <div id="emissionList" class="content-list">
+            <div class="loading">Chargement...</div>
+        </div>
+
+    </div>
+
+
+    <div class="panel">
+
+        <h2>Radio en direct</h2>
+
+        <div class="form-grid">
+
+            <div class="form-full">
+
+                <label>
+                    URL du flux radio
+                </label>
+
+                <input
+                    id="radioStreamUrl"
+                    type="url"
+                    placeholder="https://..."
+                >
+
+            </div>
+
+        </div>
+
+        <div class="actions">
+
+            <button class="btn btn-primary" onclick="saveRadioSettings()">
+                💾 Enregistrer le flux
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     SETTINGS
+========================= -->
+
+<section id="settings" class="page">
+
+    <div class="panel">
+
+        <h2>⚙️ Apparence & contenu</h2>
+
+        <p style="color:#888;margin-bottom:30px;">
+            Les changements enregistrés ici seront utilisés par les pages publiques.
+        </p>
+
+
+        <!-- IDENTITÉ -->
+
+        <div class="setting-section">
+
+            <h3>Identité</h3>
+
+            <div class="form-grid">
+
+                <div>
+                    <label>Nom du média</label>
+                    <input id="siteName" type="text">
+                </div>
+
+                <div>
+                    <label>Slogan</label>
+                    <input id="siteSlogan" type="text">
+                </div>
+
+                <div class="form-full">
+
+                    <label>Logo du site</label>
+
+                    <input
+                        id="logoFile"
+                        type="file"
+                        accept="image/*"
+                    >
+
+                    <div
+                        id="logoPreview"
+                        style="margin-top:15px;color:#777;"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ACCUEIL -->
+
+        <div class="setting-section">
+
+            <h3>Page d'accueil</h3>
+
+            <div class="form-grid">
+
+                <div class="form-full">
+
+                    <label>Grand titre</label>
+
+                    <input
+                        id="homeTitle"
+                        type="text"
+                    >
+
+                </div>
+
+                <div class="form-full">
+
+                    <label>Sous-titre</label>
+
+                    <input
+                        id="homeSubtitle"
+                        type="text"
+                    >
+
+                </div>
+
+                <div class="form-full">
+
+                    <label>Description</label>
+
+                    <textarea
+                        id="homeDescription"
+                    ></textarea>
+
+                </div>
+
+                <div>
+
+                    <label>Texte bouton principal</label>
+
+                    <input
+                        id="homeButton1"
+                        type="text"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label>Texte bouton secondaire</label>
+
+                    <input
+                        id="homeButton2"
+                        type="text"
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- COULEURS -->
+
+        <div class="setting-section">
+
+            <h3>🎨 Couleurs</h3>
+
+            <div class="color-row">
+
+                <div>
+
+                    <label>
+                        Couleur principale
+                    </label>
+
+                    <input
+                        id="primaryColor"
+                        type="color"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label>
+                        Couleur secondaire
+                    </label>
+
+                    <input
+                        id="secondaryColor"
+                        type="color"
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- RADIO -->
+
+        <div class="setting-section">
+
+            <h3>📻 Radio</h3>
+
+            <div class="form-grid">
+
+                <div>
+
+                    <label>Nom de la radio</label>
+
+                    <input
+                        id="radioName"
+                        type="text"
+                    >
+
+                </div>
+
+                <div>
+
+                    <label>Texte de la radio</label>
+
+                    <input
+                        id="radioText"
+                        type="text"
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="setting-section">
+
+            <h3>Footer</h3>
+
+            <div class="form-grid">
+
+                <div class="form-full">
+
+                    <label>
+                        Texte du footer
+                    </label>
+
+                    <input
+                        id="footerText"
+                        type="text"
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="btn btn-primary"
+            onclick="saveSettings()"
+        >
+            💾 Enregistrer tous les paramètres
+        </button>
+
+    </div>
+
+</section>
+
+</main>
+
+
+<div id="notification"></div>
+
+
+<script>
+
+/* =====================================================
+   VARIABLES
+===================================================== */
+
+let currentUser = null;
+
+
+/* =====================================================
+   AUTH
+===================================================== */
+
+async function checkLogin() {
+
+    const {
+        data,
+        error
+    } = await supabaseClient.auth.getUser();
+
+    if (error || !data.user) {
+
+        window.location.href = "admin.html";
+        return;
+
+    }
+
+    currentUser = data.user;
+
+    document.getElementById("userEmail").textContent =
+        currentUser.email;
+
+    await loadAll();
+
+}
+
+
+/* =====================================================
+   NAVIGATION
+===================================================== */
+
+function showPage(page, button) {
+
+    document.querySelectorAll(".page")
+        .forEach(p => p.classList.remove("active"));
+
+    document.getElementById(page)
+        .classList.add("active");
+
+    document.querySelectorAll(".menu button")
+        .forEach(b => b.classList.remove("active"));
+
+    button.classList.add("active");
+
+    const titles = {
+
+        overview: "Vue d'ensemble",
+
+        videos: "Vidéos",
+
+        journaux: "Journaux",
+
+        podcasts: "Podcasts",
+
+        radio: "Radio",
+
+        settings: "Apparence & contenu"
+
+    };
+
+    document.getElementById("pageTitle")
+        .textContent = titles[page];
+
+}
+
+
+/* =====================================================
+   NOTIFICATION
+===================================================== */
+
+function notify(message, type = "success") {
+
+    const box =
+        document.getElementById("notification");
+
+    box.textContent = message;
+
+    box.className = type;
+
+    box.style.display = "block";
+
+    setTimeout(() => {
+
+        box.style.display = "none";
+
+    }, 3500);
+
+}
+
+
+/* =====================================================
+   UPLOAD
+===================================================== */
+
+async function uploadFile(bucket, file, folder) {
+
+    if (!file) {
+
+        throw new Error("Aucun fichier sélectionné.");
+
+    }
+
+    const safeName =
+        file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+    const path =
+        currentUser.id +
+        "/" +
+        folder +
+        "/" +
+        Date.now() +
+        "-" +
+        safeName;
+
+
+    const {
+        error
+    } = await supabaseClient.storage
+        .from(bucket)
+        .upload(path, file);
+
+
+    if (error) {
+
+        throw error;
+
+    }
+
+
+    const {
+        data
+    } = supabaseClient.storage
+        .from(bucket)
+        .getPublicUrl(path);
+
+
+    return data.publicUrl;
+
+}
+
+
+/* =====================================================
+   VIDEO
+===================================================== */
+
+async function uploadVideo() {
+
+    try {
+
+        const title =
+            document.getElementById("videoTitle").value.trim();
+
+        const description =
+            document.getElementById("videoDescription").value.trim();
+
+        const videoFile =
+            document.getElementById("videoFile").files[0];
+
+        const thumbnailFile =
+            document.getElementById("videoThumbnail").files[0];
+
+
+        if (!title || !videoFile) {
+
+            notify(
+                "Titre et vidéo obligatoires.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        notify("Upload de la vidéo...");
+
+
+        const videoUrl =
+            await uploadFile(
+                "videos",
+                videoFile,
+                "videos"
+            );
+
+
+        let thumbnailUrl = null;
+
+
+        if (thumbnailFile) {
+
+            thumbnailUrl =
+                await uploadFile(
+                    "videos",
+                    thumbnailFile,
+                    "thumbnails"
+                );
+
+        }
+
+
+        const {
+            error
+        } = await supabaseClient
+            .from("videos")
+            .insert({
+
+                title: title,
+
+                description: description,
+
+                video_url: videoUrl,
+
+                thumbnail_url: thumbnailUrl,
+
+                published: false
+
+            });
+
+
+        if (error) throw error;
+
+
+        document.getElementById("videoTitle").value = "";
+
+        document.getElementById("videoDescription").value = "";
+
+        document.getElementById("videoFile").value = "";
+
+        document.getElementById("videoThumbnail").value = "";
+
+
+        notify("Vidéo ajoutée avec succès.");
+
+        await loadVideos();
+
+        await loadStats();
+
+    } catch(error) {
+
+        console.error(error);
+
+        notify(
+            "Erreur : " + error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   JOURNAL
+===================================================== */
+
+async function uploadJournal() {
+
+    try {
+
+        const title =
+            document.getElementById("journalTitle").value.trim();
+
+        const description =
+            document.getElementById("journalDescription").value.trim();
+
+        const file =
+            document.getElementById("journalFile").files[0];
+
+        const coverFile =
+            document.getElementById("journalCover").files[0];
+
+
+        if (!title || !file) {
+
+            notify(
+                "Titre et PDF obligatoires.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        notify("Upload du journal...");
+
+
+        const pdfUrl =
+            await uploadFile(
+                "journaux",
+                file,
+                "journaux"
+            );
+
+
+        let coverUrl = null;
+
+        if (coverFile) {
+
+            notify("Upload de l'image...");
+
+            coverUrl =
+                await uploadFile(
+                    "covers",
+                    coverFile,
+                    "journaux"
+                );
+
+        }
+
+
+        const {
+            error
+        } = await supabaseClient
+            .from("journaux")
+            .insert({
+
+                title: title,
+
+                description: description,
+
+                pdf_url: pdfUrl,
+
+                cover_url: coverUrl,
+
+                published: false
+
+            });
+
+
+        if (error) throw error;
+
+
+        document.getElementById("journalTitle").value = "";
+
+        document.getElementById("journalDescription").value = "";
+
+        document.getElementById("journalFile").value = "";
+
+        document.getElementById("journalCover").value = "";
+
+
+        notify("Journal ajouté avec succès.");
+
+        await loadJournaux();
+
+        await loadStats();
+
+    } catch(error) {
+
+        console.error(error);
+
+        notify(
+            "Erreur : " + error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   PODCAST
+===================================================== */
+
+async function uploadPodcast() {
+
+    try {
+
+        const title =
+            document.getElementById("podcastTitle").value.trim();
+
+        const description =
+            document.getElementById("podcastDescription").value.trim();
+
+        const file =
+            document.getElementById("podcastFile").files[0];
+
+        const coverFile =
+            document.getElementById("podcastCover").files[0];
+
+
+        if (!title || !file) {
+
+            notify(
+                "Titre et audio obligatoires.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        notify("Upload du podcast...");
+
+
+        const audioUrl =
+            await uploadFile(
+                "audio",
+                file,
+                "podcasts"
+            );
+
+
+        let coverUrl = null;
+
+        if (coverFile) {
+
+            notify("Upload de l'image...");
+
+            coverUrl =
+                await uploadFile(
+                    "covers",
+                    coverFile,
+                    "podcasts"
+                );
+
+        }
+
+
+        const {
+            error
+        } = await supabaseClient
+            .from("podcasts")
+            .insert({
+
+                title: title,
+
+                description: description,
+
+                audio_url: audioUrl,
+
+                cover_url: coverUrl,
+
+                published: false
+
+            });
+
+
+        if (error) throw error;
+
+
+        document.getElementById("podcastTitle").value = "";
+
+        document.getElementById("podcastDescription").value = "";
+
+        document.getElementById("podcastFile").value = "";
+
+        document.getElementById("podcastCover").value = "";
+
+
+        notify("Podcast ajouté avec succès.");
+
+        await loadPodcasts();
+
+        await loadStats();
+
+    } catch(error) {
+
+        console.error(error);
+
+        notify(
+            "Erreur : " + error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   EMISSION
+===================================================== */
+
+async function uploadEmission() {
+
+    try {
+
+        const title =
+            document.getElementById("emissionTitle").value.trim();
+
+        const description =
+            document.getElementById("emissionDescription").value.trim();
+
+        const file =
+            document.getElementById("emissionFile").files[0];
+
+        const coverFile =
+            document.getElementById("emissionCover").files[0];
+
+
+        if (!title || !file) {
+
+            notify(
+                "Titre et audio obligatoires.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        notify("Upload de l'émission...");
+
+
+        const audioUrl =
+            await uploadFile(
+                "audio",
+                file,
+                "emissions"
+            );
+
+
+        let coverUrl = null;
+
+        if (coverFile) {
+
+            notify("Upload de l'image...");
+
+            coverUrl =
+                await uploadFile(
+                    "covers",
+                    coverFile,
+                    "emissions"
+                );
+
+        }
+
+
+        const {
+            error
+        } = await supabaseClient
+            .from("emissions")
+            .insert({
+
+                title: title,
+
+                description: description,
+
+                audio_url: audioUrl,
+
+                cover_url: coverUrl,
+
+                published: false
+
+            });
+
+
+        if (error) throw error;
+
+
+        document.getElementById("emissionTitle").value = "";
+
+        document.getElementById("emissionDescription").value = "";
+
+        document.getElementById("emissionFile").value = "";
+
+        document.getElementById("emissionCover").value = "";
+
+
+        notify("Émission ajoutée avec succès.");
+
+        await loadEmissions();
+
+        await loadStats();
+
+    } catch(error) {
+
+        console.error(error);
+
+        notify(
+            "Erreur : " + error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   LOAD ALL
+===================================================== */
+
+async function loadAll() {
+
+    await Promise.all([
+
+        loadStats(),
+
+        loadVideos(),
+
+        loadJournaux(),
+
+        loadPodcasts(),
+
+        loadEmissions(),
+
+        loadSettings()
+
+    ]);
+
+}
+
+
+/* =====================================================
+   STATS
+===================================================== */
+
+async function loadStats() {
+
+    const tables = [
+
+        ["videos", "videoCount"],
+
+        ["journaux", "journalCount"],
+
+        ["podcasts", "podcastCount"],
+
+        ["emissions", "emissionCount"]
+
+    ];
+
+
+    for (const [table, element] of tables) {
+
+        const {
+            count,
+            error
+        } = await supabaseClient
+            .from(table)
+            .select("*", {
+                count: "exact",
+                head: true
+            });
+
+
+        if (!error) {
+
+            document.getElementById(element)
+                .textContent = count || 0;
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   LOAD VIDEOS
+===================================================== */
+
+async function loadVideos() {
+
+    const container =
+        document.getElementById("videoList");
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("videos")
+        .select("*")
+        .order("created_at", {
+            ascending: false
+        });
+
+
+    if (error) {
+
+        container.innerHTML =
+            '<div class="loading">Erreur de chargement.</div>';
+
+        console.error(error);
+
+        return;
+
+    }
+
+
+    if (!data.length) {
+
+        container.innerHTML =
+            '<div class="loading">Aucune vidéo.</div>';
+
+        return;
+
+    }
+
+
+    container.innerHTML = "";
+
+
+    data.forEach(video => {
+
+        container.innerHTML += `
+
+        <div class="content-item">
+
+            <div class="content-info">
+
+                <div class="content-title">
+                    ${escapeHTML(video.title)}
+                </div>
+
+                <div class="content-description">
+                    ${escapeHTML(video.description || "")}
+                </div>
+
+                <span class="status ${video.published ? "published" : "hidden"}">
+
+                    ${video.published
+                        ? "Publié"
+                        : "Non publié"}
+
+                </span>
+
+            </div>
+
+            <div class="actions">
+
+                <button
+                    class="btn ${video.published ? "btn-secondary" : "btn-success"}"
+                    onclick="togglePublish('videos', '${video.id}', ${video.published})">
+
+                    ${video.published
+                        ? "Dépublier"
+                        : "Publier"}
+
+                </button>
+
+                <button
+                    class="btn btn-danger"
+                    onclick="deleteContent('videos', '${video.id}')">
+
+                    Supprimer
+
+                </button>
+
+            </div>
+
+        </div>
+
+        `;
+
+    });
+
+}
+
+
+/* =====================================================
+   LOAD JOURNAUX
+===================================================== */
+
+async function loadJournaux() {
+
+    const container =
+        document.getElementById("journalList");
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("journaux")
+        .select("*")
+        .order("created_at", {
+            ascending: false
+        });
+
+
+    if (error) {
+
+        container.innerHTML =
+            '<div class="loading">Erreur de chargement.</div>';
+
+        console.error(error);
+
+        return;
+
+    }
+
+
+    if (!data.length) {
+
+        container.innerHTML =
+            '<div class="loading">Aucun journal.</div>';
+
+        return;
+
+    }
+
+
+    container.innerHTML = "";
+
+
+    data.forEach(journal => {
+
+        container.innerHTML += `
+
+        <div class="content-item">
+
+            <div class="content-info">
+
+                <div class="content-title">
+                    ${escapeHTML(journal.title)}
+                </div>
+
+                <div class="content-description">
+                    ${escapeHTML(journal.description || "")}
+                </div>
+
+                <span class="status ${journal.published ? "published" : "hidden"}">
+
+                    ${journal.published
+                        ? "Publié"
+                        : "Non publié"}
+
+                </span>
+
+            </div>
+
+            <div class="actions">
+
+                <button
+                    class="btn ${journal.published ? "btn-secondary" : "btn-success"}"
+                    onclick="togglePublish('journaux', '${journal.id}', ${journal.published})">
+
+                    ${journal.published
+                        ? "Dépublier"
+                        : "Publier"}
+
+                </button>
+
+                <button
+                    class="btn btn-danger"
+                    onclick="deleteContent('journaux', '${journal.id}')">
+
+                    Supprimer
+
+                </button>
+
+            </div>
+
+        </div>
+
+        `;
+
+    });
+
+}
+
+
+/* =====================================================
+   LOAD PODCASTS
+===================================================== */
+
+async function loadPodcasts() {
+
+    const container =
+        document.getElementById("podcastList");
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("podcasts")
+        .select("*")
+        .order("created_at", {
+            ascending: false
+        });
+
+
+    if (error) {
+
+        container.innerHTML =
+            '<div class="loading">Erreur de chargement.</div>';
+
+        console.error(error);
+
+        return;
+
+    }
+
+
+    if (!data.length) {
+
+        container.innerHTML =
+            '<div class="loading">Aucun podcast.</div>';
+
+        return;
+
+    }
+
+
+    container.innerHTML = "";
+
+
+    data.forEach(podcast => {
+
+        container.innerHTML += `
+
+        <div class="content-item">
+
+            <div class="content-info">
+
+                <div class="content-title">
+                    ${escapeHTML(podcast.title)}
+                </div>
+
+                <div class="content-description">
+                    ${escapeHTML(podcast.description || "")}
+                </div>
+
+                <span class="status ${podcast.published ? "published" : "hidden"}">
+
+                    ${podcast.published
+                        ? "Publié"
+                        : "Non publié"}
+
+                </span>
+
+            </div>
+
+            <div class="actions">
+
+                <button
+                    class="btn ${podcast.published ? "btn-secondary" : "btn-success"}"
+                    onclick="togglePublish('podcasts', '${podcast.id}', ${podcast.published})">
+
+                    ${podcast.published
+                        ? "Dépublier"
+                        : "Publier"}
+
+                </button>
+
+                <button
+                    class="btn btn-danger"
+                    onclick="deleteContent('podcasts', '${podcast.id}')">
+
+                    Supprimer
+
+                </button>
+
+            </div>
+
+        </div>
+
+        `;
+
+    });
+
+}
+
+
+/* =====================================================
+   LOAD EMISSIONS
+===================================================== */
+
+async function loadEmissions() {
+
+    const container =
+        document.getElementById("emissionList");
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("emissions")
+        .select("*")
+        .order("created_at", {
+            ascending: false
+        });
+
+
+    if (error) {
+
+        container.innerHTML =
+            '<div class="loading">Erreur de chargement.</div>';
+
+        console.error(error);
+
+        return;
+
+    }
+
+
+    if (!data.length) {
+
+        container.innerHTML =
+            '<div class="loading">Aucune émission.</div>';
+
+        return;
+
+    }
+
+
+    container.innerHTML = "";
+
+
+    data.forEach(emission => {
+
+        container.innerHTML += `
+
+        <div class="content-item">
+
+            <div class="content-info">
+
+                <div class="content-title">
+                    ${escapeHTML(emission.title)}
+                </div>
+
+                <div class="content-description">
+                    ${escapeHTML(emission.description || "")}
+                </div>
+
+                <span class="status ${emission.published ? "published" : "hidden"}">
+
+                    ${emission.published
+                        ? "Publié"
+                        : "Non publié"}
+
+                </span>
+
+            </div>
+
+            <div class="actions">
+
+                <button
+                    class="btn ${emission.published ? "btn-secondary" : "btn-success"}"
+                    onclick="togglePublish('emissions', '${emission.id}', ${emission.published})">
+
+                    ${emission.published
+                        ? "Dépublier"
+                        : "Publier"}
+
+                </button>
+
+                <button
+                    class="btn btn-danger"
+                    onclick="deleteContent('emissions', '${emission.id}')">
+
+                    Supprimer
+
+                </button>
+
+            </div>
+
+        </div>
+
+        `;
+
+    });
+
+}
+
+
+/* =====================================================
+   PUBLISH / UNPUBLISH
+===================================================== */
+
+async function togglePublish(
+    table,
+    id,
+    currentStatus
+) {
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from(table)
+        .update({
+            published: !currentStatus
+        })
+        .eq("id", id)
+        .select();
+
+
+    if (error) {
+
+        console.error(error);
+
+        notify(
+            "Impossible de modifier la publication : " + error.message,
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (!data || data.length === 0) {
+
+        console.error(
+            "Update silencieux : 0 ligne modifiée pour",
+            table, id
+        );
+
+        notify(
+            "Rien n'a été modifié en base (probablement une règle RLS qui bloque l'UPDATE sur \"" + table + "\").",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    notify(
+        currentStatus
+            ? "Contenu dépublié."
+            : "Contenu publié."
+    );
+
+
+    if (table === "videos")
+        await loadVideos();
+
+    if (table === "journaux")
+        await loadJournaux();
+
+    if (table === "podcasts")
+        await loadPodcasts();
+
+    if (table === "emissions")
+        await loadEmissions();
+
+    await loadStats();
+
+}
+
+
+/* =====================================================
+   DELETE
+===================================================== */
+
+async function deleteContent(table, id) {
+
+    const confirmed =
+        confirm(
+            "Voulez-vous vraiment supprimer ce contenu ?"
+        );
+
+
+    if (!confirmed) return;
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from(table)
+        .delete()
+        .eq("id", id)
+        .select();
+
+
+    if (error) {
+
+        console.error(error);
+
+        notify(
+            "Impossible de supprimer : " + error.message,
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (!data || data.length === 0) {
+
+        console.error(
+            "Delete silencieux : 0 ligne supprimée pour",
+            table, id
+        );
+
+        notify(
+            "Rien n'a été supprimé en base (probablement une règle RLS qui bloque le DELETE sur \"" + table + "\").",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    notify("Contenu supprimé.");
+
+
+    if (table === "videos")
+        await loadVideos();
+
+    if (table === "journaux")
+        await loadJournaux();
+
+    if (table === "podcasts")
+        await loadPodcasts();
+
+    if (table === "emissions")
+        await loadEmissions();
+
+
+    await loadStats();
+
+}
+
+
+/* =====================================================
+   SETTINGS HELPERS
+===================================================== */
+
+async function getSetting(key) {
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("site_settings")
+        .select("setting_value")
+        .eq("setting_key", key)
+        .maybeSingle();
+
+
+    if (error) {
+
+        console.error(error);
+
+        return "";
+
+    }
+
+
+    return data
+        ? data.setting_value
+        : "";
+
+}
+
+
+async function saveSetting(key, value) {
+
+    const {
+        error
+    } = await supabaseClient
+        .from("site_settings")
+        .upsert({
+
+            setting_key: key,
+
+            setting_value: value,
+
+            updated_at: new Date().toISOString()
+
+        }, {
+            onConflict: "setting_key"
+        });
+
+
+    if (error) throw error;
+
+}
+
+
+/* =====================================================
+   LOAD SETTINGS
+===================================================== */
+
+async function loadSettings() {
+
+    document.getElementById("siteName").value =
+        await getSetting("site_name");
+
+    document.getElementById("siteSlogan").value =
+        await getSetting("site_slogan");
+
+    document.getElementById("homeTitle").value =
+        await getSetting("home_title");
+
+    document.getElementById("homeSubtitle").value =
+        await getSetting("home_subtitle");
+
+    document.getElementById("homeDescription").value =
+        await getSetting("home_description");
+
+    document.getElementById("homeButton1").value =
+        await getSetting("home_button_1");
+
+    document.getElementById("homeButton2").value =
+        await getSetting("home_button_2");
+
+    document.getElementById("primaryColor").value =
+        await getSetting("primary_color") || "#e30613";
+
+    document.getElementById("secondaryColor").value =
+        await getSetting("secondary_color") || "#111111";
+
+    document.getElementById("radioName").value =
+        await getSetting("radio_name");
+
+    document.getElementById("radioText").value =
+        await getSetting("radio_text");
+
+    document.getElementById("radioStreamUrl").value =
+        await getSetting("radio_stream_url");
+
+    document.getElementById("footerText").value =
+        await getSetting("footer_text");
+
+
+    const logo =
+        await getSetting("logo_url");
+
+
+    if (logo) {
+
+        document.getElementById("logoPreview").innerHTML = `
+
+            <img
+                src="${logo}"
+                style="
+                    max-width:220px;
+                    max-height:100px;
+                    object-fit:contain;
+                "
+            >
+
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   SAVE SETTINGS
+===================================================== */
+
+async function saveSettings() {
+
+    try {
+
+        notify("Enregistrement...");
+
+
+        await saveSetting(
+            "site_name",
+            document.getElementById("siteName").value
+        );
+
+
+        await saveSetting(
+            "site_slogan",
+            document.getElementById("siteSlogan").value
+        );
+
+
+        await saveSetting(
+            "home_title",
+            document.getElementById("homeTitle").value
+        );
+
+
+        await saveSetting(
+            "home_subtitle",
+            document.getElementById("homeSubtitle").value
+        );
+
+
+        await saveSetting(
+            "home_description",
+            document.getElementById("homeDescription").value
+        );
+
+
+        await saveSetting(
+            "home_button_1",
+            document.getElementById("homeButton1").value
+        );
+
+
+        await saveSetting(
+            "home_button_2",
+            document.getElementById("homeButton2").value
+        );
+
+
+        await saveSetting(
+            "primary_color",
+            document.getElementById("primaryColor").value
+        );
+
+
+        await saveSetting(
+            "secondary_color",
+            document.getElementById("secondaryColor").value
+        );
+
+
+        await saveSetting(
+            "radio_name",
+            document.getElementById("radioName").value
+        );
+
+
+        await saveSetting(
+            "radio_text",
+            document.getElementById("radioText").value
+        );
+
+
+        await saveSetting(
+            "footer_text",
+            document.getElementById("footerText").value
+        );
+
+
+        const logoFile =
+            document.getElementById("logoFile").files[0];
+
+
+        if (logoFile) {
+
+            notify("Upload du logo...");
+
+
+            const logoUrl =
+                await uploadFile(
+                    "audio",
+                    logoFile,
+                    "site"
+                );
+
+
+            await saveSetting(
+                "logo_url",
+                logoUrl
+            );
+
+
+            document.getElementById("logoPreview").innerHTML = `
+
+                <img
+                    src="${logoUrl}"
+                    style="
+                        max-width:220px;
+                        max-height:100px;
+                        object-fit:contain;
+                    "
+                >
+
+            `;
+
+        }
+
+
+        await saveSetting(
+            "radio_stream_url",
+            document.getElementById("radioStreamUrl").value
+        );
+
+
+        notify(
+            "Paramètres enregistrés !"
+        );
+
+
+    } catch(error) {
+
+        console.error(error);
+
+        notify(
+            "Erreur : " + error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   RADIO SETTINGS
+===================================================== */
+
+async function saveRadioSettings() {
+
+    try {
+
+        await saveSetting(
+            "radio_stream_url",
+            document.getElementById("radioStreamUrl").value
+        );
+
+        notify(
+            "Flux radio enregistré."
+        );
+
+    } catch(error) {
+
+        console.error(error);
+
+        notify(
+            "Erreur : " + error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
+
+function escapeHTML(text) {
+
+    return String(text)
+
+        .replaceAll("&", "&amp;")
+
+        .replaceAll("<", "&lt;")
+
+        .replaceAll(">", "&gt;")
+
+        .replaceAll('"', "&quot;")
+
+        .replaceAll("'", "&#039;");
+
+}
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+async function logout() {
+
+    await supabaseClient.auth.signOut();
+
+    window.location.href = "admin.html";
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+checkLogin();
+
+</script>
+
+</body>
+
+</html>
