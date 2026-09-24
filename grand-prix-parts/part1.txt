@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grand Prix 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:ital,wght@1,600;1,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#eef2f6; --ink:#0f1b3d; --signal:#ffcf00; --red:#e10600; --muted:#5b6478; --line:#cdd5e0;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0;height:100%;overflow:hidden;background:#cfe3f2;color:var(--ink);
+    font-family:"Barlow","Helvetica Neue",Arial,sans-serif;font-size:16px;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  input,select{-webkit-user-select:text;user-select:text}
+  .display{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif;font-style:italic;font-weight:800}
+  .panel{background:var(--paper);border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  :focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  /* Accueil et salle */
+  #lobby{position:fixed;top:20px;left:20px;width:min(390px,calc(100vw - 32px));
+    max-height:calc(100dvh - 40px);overflow:auto;padding:22px;border-left:10px solid var(--signal)}
+  #lobby h1{margin:0;font-size:52px;line-height:.95;letter-spacing:-.5px}
+  #lobby .sub{margin:6px 0 18px;color:var(--muted)}
+  label{display:block;font-weight:600;margin:14px 0 6px}
+  input[type=text],select{width:100%;padding:11px 12px;font:inherit;color:var(--ink);background:#fff;
+    border:2px solid var(--line);border-radius:4px}
+  input[type=text]:focus,select:focus{border-color:var(--ink);outline:none}
+  .row{display:flex;gap:8px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .swatches{display:flex;flex-wrap:wrap;gap:8px}
+  .swatch{width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line);cursor:pointer;padding:0}
+  .swatch[aria-pressed=true]{box-shadow:0 0 0 3px var(--ink)}
+  button{font:inherit;cursor:pointer}
+  .btn{display:block;width:100%;padding:13px 16px;border-radius:4px;border:2px solid var(--ink);font-weight:600;margin-top:10px}
+  .btn.primary{background:var(--ink);color:#fff}
+  .btn.primary:hover{background:#1c2f66}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:#dfe6ef}
+  .btn.small{width:auto;margin:0;padding:11px 14px}
+  .status{min-height:1.3em;margin:12px 0 0;color:var(--red);font-size:15px}
+  .note{margin:10px 0 0;color:var(--muted);font-size:15px}
+  .roomhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .roomhead .code{font-size:48px;line-height:1;letter-spacing:2px}
+  #people{list-style:none;margin:0;padding:0;border-top:2px solid var(--line)}
+  #people li{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:2px solid var(--line);font-weight:600}
+  .dot{width:16px;height:16px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px rgba(0,0,0,.25)}
+
+  /* Feux de départ */
+  #lights{position:fixed;top:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;
+    padding:12px 16px;background:#15171c;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .lamp{width:38px;height:38px;border-radius:50%;background:#3b1512;box-shadow:inset 0 0 0 3px #000}
+  .lamp.on{background:#ff2b1f;box-shadow:inset 0 0 0 3px #000,0 0 22px 4px rgba(255,43,31,.75)}
+
+  /* Panneau des positions */
+  #tower{position:fixed;top:16px;left:16px;width:210px;padding:6px 0}
+  #tower ol{list-style:none;margin:0;padding:0}
+  #tower li{display:grid;grid-template-columns:26px 6px 1fr auto;align-items:center;gap:8px;padding:3px 10px 3px 8px;font-weight:600;font-size:15px}
+  #tower li.me{background:var(--signal)}
+  #tower .pos{font-size:21px;text-align:right;line-height:1}
+  #tower .bar{height:18px;border-radius:2px;background:var(--c)}
+  #tower .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #tower .tm{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+  #tower li.me .tm{color:var(--ink)}
+
+  /* Chiffres de course */
+  #stats{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;align-items:stretch;overflow:hidden}
+  #stats > div{padding:8px 16px;text-align:center;border-right:2px solid var(--line);min-width:84px}
+  #stats > div:last-child{border-right:0}
+  #stats .v{font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+  #stats .k{font-size:13px;color:var(--muted);font-weight:600}
+
+  /* Compteur et mini-carte */
+  #gauge{position:fixed;right:14px;bottom:14px;width:240px;height:240px;pointer-events:none}
+  #mini{position:fixed;top:16px;right:16px;width:200px;height:136px;border-radius:4px;pointer-events:none}
+
+  #banner{position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);font-size:clamp(56px,14vw,140px);
+    color:var(--signal);text-shadow:0 4px 0 #000,0 0 30px rgba(0,0,0,.5);pointer-events:none;white-space:nowrap}
+
+  /* Résultats */
+  #results{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));
+    max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border-top:10px solid var(--signal)}
+  #results h2{margin:0 0 4px;font-size:44px;line-height:1}
+  #results .mine{margin:0 0 14px;color:var(--muted)}
+  #results ol{list-style:none;margin:0;padding:0;border-top:2px solid var(--line)}
+  #results li{display:grid;grid-template-columns:32px 16px 1fr auto;align-items:center;gap:10px;
+    padding:8px 2px;border-bottom:2px solid var(--line);font-weight:600}
+  #results li.me{background:#fff6c2}
+  #results .pos{font-size:24px;text-align:right;line-height:1}
+  #results .tm{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+  /* Boutons tactiles */
+  #touch{position:fixed;left:0;right:0;bottom:0;padding:0 14px calc(14px + env(safe-area-inset-bottom,0px));
+    display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none}
+  #touch .grp{display:flex;gap:12px;pointer-events:auto}
+  #touch button{width:84px;height:84px;border-radius:50%;border:3px solid #fff;background:rgba(15,27,61,.72);
+    color:#fff;font-size:30px;touch-action:none}
+  #touch button.on{background:var(--signal);color:var(--ink)}
+
+  #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+  #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 52%,rgba(0,0,0,.6) 100%);opacity:.2;transition:opacity .25s}
+  .opts{display:flex;gap:8px;align-items:center;margin:0 0 4px}
+  .opts select{flex:1}
+
+  #pitStatus{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 18px;background:rgba(8,12,20,.9);color:#fff;border:2px solid var(--signal);border-radius:6px;font-weight:800;pointer-events:none;z-index:8;text-align:center;min-width:260px}
+  #pitStatus .small{display:block;font-size:12px;color:#cdd5e0;margin-top:3px}
+  @media (max-width:600px), (pointer:coarse){
+    #lobby{top:10px;left:10px;padding:16px}
+    #lobby h1{font-size:40px}
+    #tower{width:170px;top:8px;left:8px}
+    #mini{width:140px;height:96px;top:8px;right:8px}
+    #gauge{width:150px;height:150px;bottom:112px;right:6px}
+    #stats{bottom:112px;left:8px;transform:none}
+    #stats > div{padding:6px 10px;min-width:64px}
+    #stats .v{font-size:24px}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+#garageLabels .garageLabel{backdrop-filter:blur(5px);box-shadow:0 8px 18px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Circuit de course en 3D"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div id="vig" aria-hidden="true"></div>
+<canvas id="mini" hidden></canvas>
+<canvas id="gauge" hidden aria-label="Compteur de vitesse"></canvas>
+
+<!-- Accueil et salle -->
+<section id="lobby" class="panel">
+  <h1 class="display">Grand Prix</h1>
+  <p class="sub">Course de F1 en 3D, seul ou entre amis</p>
+  <div class="opts">
+    <select id="moodSel" aria-label="Ambiance de la course">
+      <option value="day">☀️ Plein jour</option>
+      <option value="sunset">🌇 Coucher de soleil</option>
+      <option value="night">🌙 Nuit</option>
+    </select>
+    <button class="btn ghost small" id="soundBtn" type="button" aria-label="Activer ou couper le son">🔊</button>
+  </div>
+
+  <div id="joinView">
+    <label for="nameInput">Ton pseudo</label>
+    <input id="nameInput" type="text" maxlength="14" autocomplete="off" placeholder="Ex. Max">
+
+    <label id="colorLabel">Ta couleur</label>
+    <div class="swatches" id="swatches" role="group" aria-labelledby="colorLabel"></div>
+
+    <label for="codeInput">Code de la salle</label>
+    <div class="row">
+      <input id="codeInput" type="text" maxlength="6" autocomplete="off" placeholder="Ex. K7QF" style="text-transform:uppercase">
+      <button class="btn ghost small" id="diceBtn" type="button" aria-label="Générer un code">🎲</button>
+    </div>
+
+    <button class="btn primary" id="joinBtn" type="button">Entrer dans la salle</button>
+    <button class="btn ghost" id="soloBtn" type="button">Jouer seul contre les bots</button>
+    <p class="status" id="joinStatus" role="status"></p>
+  </div>
+
+  <div id="roomView" hidden>
+    <div class="roomhead">
+      <div class="code display" id="roomCode"></div>
+      <button class="btn ghost small" id="copyBtn" type="button">Copier le lien</button>
+    </div>
+    <ul id="people"></ul>
+
+    <label for="trackSel">Circuit</label>
+    <select id="trackSel">
+      <option value="monaco">Monaco — technique et serré</option>
+      <option value="spa">Spa — rapide et sinueux</option>
+      <option value="monza">Monza — longues lignes droites</option>
+      <option value="suzuka">Suzuka — enchaînements techniques</option>
+    </select>
+
+    <div class="two">
+      <div>
+        <label for="lapsSel">Tours</label>
+        <select id="lapsSel">
+          <option value="3">3 tours</option>
+          <option value="5">5 tours</option>
+          <option value="8">8 tours</option>
+        </select>
+      </div>
+      <div>
+        <label for="botsSel">Bots</label>
+        <select id="botsSel">
+          <option value="0">Aucun</option>
+          <option value="3">3 bots</option>
+          <option value="5" selected>5 bots</option>
+          <option value="7">7 bots</option>
+        </select>
+      </div>
+    </div>
+    <label for="lvlSel">Niveau des bots</label>
+    <select id="lvlSel">
+      <option value="0.88">Normal</option>
+      <option value="0.95" selected>Fort</option>
+      <option value="1">Redoutable</option>
+    </select>
+
+    <p class="note" id="raceNote"></p>
+    <button class="btn primary" id="startBtn" type="button">Lancer la course</button>
+    <button class="btn ghost" id="leaveBtn" type="button">Quitter la salle</button>
+    <p class="note">Accélérer et freiner : ↑ ↓ ou Z S. Tourner : ← → ou Q D. C change la caméra, R te remet sur la piste, M coupe le son.</p>
+  </div>
+</section>
+
+<!-- Course -->
+<div id="lights" hidden aria-hidden="true"><div class="lamp"></div><div class="lamp"></div><div class="lamp"></div><div class="lamp"></div><div class="lamp"></div></div>
+<aside id="tower" class="panel" hidden><ol id="towerList"></ol></aside>
+<div id="stats" class="panel" hidden>
+  <div><div class="v display" id="stPos">1/1</div><div class="k">Position</div></div>
+  <div><div class="v display" id="stLap">1/3</div><div class="k">Tour</div></div>
+  <div><div class="v display" id="stTime">0:00.0</div><div class="k">Temps</div></div>
+  <div><div class="v display" id="stBest">-</div><div class="k">Meilleur tour</div></div>
+  <div><div class="v display" id="stTire">NEUFS</div><div class="k">Pneus</div></div>
+</div>
+<div id="banner" class="display" hidden></div>
+<div id="pitStatus" hidden aria-live="polite"><span id="pitStatusMain">PIT LANE</span><span class="small" id="pitStatusSub">Limiteur automatique — arrêt obligatoire</span></div>
+
+<section id="results" class="panel" hidden>
+  <h2 class="display" id="resTitle">Arrivée</h2>
+  <p class="mine" id="resMine"></p>
+  <ol id="resList"></ol>
+  <button class="btn primary" id="backBtn" type="button">Retour à la salle</button>
+</section>
+
+<div id="touch" hidden>
+  <div class="grp"><button id="tLeft" type="button" aria-label="Gauche">◀</button><button id="tRight" type="button" aria-label="Droite">▶</button></div>
+  <div class="grp"><button id="tBrake" type="button" aria-label="Freiner">■</button><button id="tGas" type="button" aria-label="Accélérer">▲</button></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+"use strict";
+
+/* =====================================================================
+   RÉGLAGES SUPABASE (le multijoueur en ligne en a besoin)
+   Dans Supabase : Project Settings > API
+   - Project URL  -> à coller dans SUPABASE_URL
+   - anon public  -> à coller dans SUPABASE_ANON_KEY
+   Ne colle JAMAIS la clé "service_role" ici.
+   ===================================================================== */
+const SUPABASE_URL = "https://jxtrncptxmonpwzmgfux.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_VAvSLiZZI84XgeK450EoRA_0POsIPhg";
+
+const ONLINE = !/COLLE_ICI/.test(SUPABASE_URL + SUPABASE_ANON_KEY) && typeof supabase !== "undefined";
+
+/* ------------------------------ Utilitaires ------------------------------ */
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+function fmt(ms, digits) {
+  if (!ms || ms < 0) ms = 0;
+  const m = Math.floor(ms / 60000), s = (ms % 60000) / 1000;
+  return m + ":" + (s < 10 ? "0" : "") + s.toFixed(digits === undefined ? 3 : digits);
+}
+const canvas = $("game");
+let W = innerWidth, H = innerHeight, DPR = 1;
+
+/* =====================================================================
+   PHYSIQUE, CIRCUIT ET PILOTES AUTOMATIQUES (unités : mètres et secondes)
+   ===================================================================== */
+// PHYS_START
+const SC = 0.32, TRACK_W = 22, KERB = 1.8, N = 720;
+const OFFD = TRACK_W / 2 + KERB + 0.4;      // au-delà : herbe et gravier
+const WALL_D = TRACK_W / 2 + KERB + 8;      // les rails de sécurité
+const ALAT = 36, ACC = 13, PWR = 1000, BRK = 38, DRAG = 0.0011, VMAX_BOT = 92;
+let STAND_IDX = [];   // recalculé pour chaque circuit : uniquement sur les sections assez droites (voir pickStandIndices)
+
+const TRACKS = {
+  monaco: { name: "Monaco", ctrl: [[1251.2,1324.3],[1024.1,1300.6],[729.3,1257.0],[694.2,1012.4],[752.4,809.3],[780.5,620.1],[906.1,451.0],[1103.2,319.4],[1359.3,274.3],[1596.6,365.7],[1679.2,579.5],[1876.8,695.4],[1987.7,901.1],[1880.4,1106.8],[1703.1,1258.4],[1476.1,1324.6]] },
+  spa: { name: "Spa", ctrl: [[552.7,1143.4],[287.6,817.2],[321.6,376.2],[905.9,180.6],[1443.1,345.3],[1845.0,461.3],[2350.2,676.8],[2390.9,1106.7],[1921.0,1387.0],[1387.2,1471.3],[894.9,1384.3]] },
+  monza: { name: "Monza", ctrl: [[645.1,475.9],[1408.4,354.3],[2120.9,521.7],[2598.6,804.6],[2372.1,1150.3],[1651.8,1375.1],[716.9,1350.2],[146.9,1065.1],[39.4,714.9]] },
+  suzuka: { name: "Suzuka", ctrl: [[1660.9,1418.2],[1327.7,1475.5],[1074.7,1281.6],[778.2,1206.5],[460.1,974.1],[532.2,617.0],[766.9,345.5],[1104.5,236.3],[1423.8,298.7],[1631.8,480.5],[2035.0,565.3],[2125.4,910.6],[1978.8,1240.2]] },
+};
+let trackKey = (localStorage.getItem("gp_track") || "monaco");
+if (!TRACKS[trackKey]) trackKey = "monaco";
+let CTRL = TRACKS[trackKey].ctrl.map(p => [p[0] * SC, p[1] * SC]);
+const TX = new Float32Array(N), TZ = new Float32Array(N), TA = new Float32Array(N);
+const RGX = new Float32Array(N), RGZ = new Float32Array(N);   // vecteur "droite" en chaque point
+let TRACK_LEN = 0;
+function buildTrack() {
+  const dense = [], n = CTRL.length;
+  for (let i = 0; i < n; i++) {
+    const p0 = CTRL[(i - 1 + n) % n], p1 = CTRL[i], p2 = CTRL[(i + 1) % n], p3 = CTRL[(i + 2) % n];
+    for (let s = 0; s < 40; s++) {
+      const t = s / 40, t2 = t * t, t3 = t2 * t;
+      dense.push([
+        0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+        0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
+      ]);
+    }
+  }
+  const m = dense.length, cum = [0];
+  for (let i = 1; i <= m; i++) {
+    const a = dense[i - 1], b = dense[i % m];
+    cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+  }
+  TRACK_LEN = cum[m];
+  let j = 0;
+  for (let k = 0; k < N; k++) {
+    const target = TRACK_LEN * k / N;
+    while (j < m - 1 && cum[j + 1] < target) j++;
+    const a = dense[j], b = dense[(j + 1) % m];
+    const f = (target - cum[j]) / ((cum[j + 1] - cum[j]) || 1);
+    TX[k] = a[0] + (b[0] - a[0]) * f;
+    TZ[k] = a[1] + (b[1] - a[1]) * f;
+  }
+  for (let k = 0; k < N; k++) {
+    const a = (k + 1) % N, b = (k - 1 + N) % N;
+    TA[k] = Math.atan2(TZ[a] - TZ[b], TX[a] - TX[b]);
+    RGX[k] = -Math.sin(TA[k]); RGZ[k] = Math.cos(TA[k]);
+  }
+  PIT_X = TX[0] + RGX[0] * PIT_SIDE * PIT_LAT;
+  PIT_Z = TZ[0] + RGZ[0] * PIT_SIDE * PIT_LAT;
+  GARAGE_X = TX[0] + RGX[0] * PIT_SIDE * GARAGE_LAT;
+  GARAGE_Z = TZ[0] + RGZ[0] * PIT_SIDE * GARAGE_LAT;
+  STAND_IDX = pickStandIndices(5);
+}
+// La voie des stands : entrée APRÈS la ligne, arrêt dans les garages, puis sortie AVANT la ligne.
+// La trajectoire est une vraie courbe indépendante de la piste : elle contourne les garages
+// et revient sur la piste dans le même sens de circulation.
+const PIT_SIDE = 1, PIT_LAT = WALL_D + 5.5, GARAGE_LAT = PIT_LAT + 15.6, PIT_R = 15, WALL_D2 = PIT_LAT + 9;
+// Voie des stands DROITE, parallèle à la piste, derrière le rail (comme en vrai) :
+//   bretelle d'entrée (108 m avant la ligne) -> voie (de -70 m à +70 m) -> bretelle de sortie (108 m après la ligne)
+// Les garages sont derrière la voie, centrés sur la ligne de départ ; il y en a autant que de voitures.
+const PIT_ENTRY_REL = -108;   // la bretelle d'entrée quitte la piste ici (avant la ligne)
+const PIT_EXIT_REL = 108;     // la bretelle de sortie rejoint la piste ici (après la ligne)
+const PIT_LANE_A = -70, PIT_LANE_B = 70;
+const PIT_HALF_W = 4.5;
+const PIT_GARAGE_LANE = 15.6;  // écart entre l'axe de la voie et le centre d'une voiture arrêtée dans son box
+const PIT_BOX_W = 9.4, PIT_MAXBOX = 10;
+let pitBoxCount = 6;           // nombre de garages = nombre de voitures dans la course (fixé au départ)
+let PIT_X = 0, PIT_Z = 0, GARAGE_X = 0, GARAGE_Z = 0;
+let pitPath = null, PIT_TOTAL = 180, PIT_SERVICE_PROGRESS = 88, PIT_EXIT_PROGRESS = 142;
+function pitRelM(i) { let d = i; if (d > N / 2) d -= N; return d * (TRACK_LEN / N); }
+function trackPoseRel(relM) {
+  let d = relM % TRACK_LEN; if (d < 0) d += TRACK_LEN;
+  const f = d / (TRACK_LEN / N), i = Math.floor(f) % N, j = (i + 1) % N, u = f - Math.floor(f);
+  const x = TX[i] + (TX[j] - TX[i]) * u, z = TZ[i] + (TZ[j] - TZ[i]) * u;
+  const a = Math.atan2(TZ[j] - TZ[i], TX[j] - TX[i]);
+  return { x, z, a, rx: -Math.sin(a), rz: Math.cos(a) };
+}
+function bezier2(a,b,c,d,u) {
+  const v=1-u, v2=v*v, u2=u*u;
+  return { x:v2*v*a.x+3*v2*u*b.x+3*v*u2*c.x+u2*u*d.x, z:v2*v*a.z+3*v2*u*b.z+3*v*u2*c.z+u2*u*d.z };
+}
+function ensurePitPath() {
+  if (pitPath) return;
+  const samples = [];
+  let total = 0, prev = null, s0 = 0;
+  const nS = Math.round(PIT_LANE_B - PIT_LANE_A);
+  for (let k = 0; k <= nS; k++) {
+    const rel = PIT_LANE_A + k, t = trackPoseRel(rel), q = { x: t.x + t.rx * PIT_LAT, z: t.z + t.rz * PIT_LAT };
+    if (prev) total += Math.hypot(q.x - prev.x, q.z - prev.z);
+    samples.push({ u: k / nS, x: q.x, z: q.z, s: total });
+    if (rel === 0) s0 = total;
+    prev = q;
+  }
+  pitPath = { samples, total, p0: samples[0], p3: samples[nS] };
+  PIT_TOTAL = total;
+  PIT_SERVICE_PROGRESS = s0;   // abscisse de la ligne de départ sur la voie
+  PIT_EXIT_PROGRESS = total;
+}
+function pitPose(progress,lane=0){
+  ensurePitPath();
+  const s=clamp(progress,0,pitPath.total);
+  let lo=0,hi=pitPath.samples.length-1;
+  while(lo<hi){const m=(lo+hi)>>1;if(pitPath.samples[m].s<s)lo=m+1;else hi=m;}
+  const ib=Math.max(lo,1), b=pitPath.samples[ib], a=pitPath.samples[ib-1], span=(b.s-a.s)||1, f=clamp((s-a.s)/span,0,1);
+  const x=a.x+(b.x-a.x)*f, z=a.z+(b.z-a.z)*f;
+  const ang=Math.atan2(b.z-a.z,b.x-a.x);
+  const rx=-Math.sin(ang), rz=Math.cos(ang);
+  return {idx:0,x:x+rx*lane,z:z+rz*lane,a:ang,rx,rz};
+}
+function inPitZone(i) {
+  const r=pitRelM(i);
+  // Zone physique élargie (côté stands seulement) autour des deux bretelles.
+  return (r>PIT_ENTRY_REL-6 && r<PIT_LANE_A+6) || (r>PIT_LANE_B-6 && r<PIT_EXIT_REL+6);
+}
+function pitWallGap(i) {
+  const r=pitRelM(i);
+  // Rail et panneaux absents UNIQUEMENT là où passent les bretelles ; le long de la voie, le rail sépare piste et stands.
+  return (r>PIT_ENTRY_REL-6 && r<PIT_LANE_A+2) || (r>PIT_LANE_B-2 && r<PIT_EXIT_REL+6);
+}
+/* ---------------------------------------------------------------------
+   DÉPLACEMENT DANS LA VOIE DES STANDS
+   Trajectoire continue : bretelle d'entrée -> voie -> arc jusque dans le box -> arrêt
+   -> marche arrière hors du box -> voie -> bretelle de sortie -> piste.
+   Le suivi de position (idx, tours) continue pendant tout le trajet : passer la ligne dans la
+   voie des stands compte comme un tour.
+   --------------------------------------------------------------------- */
+const PIT_TRIG_REL = PIT_ENTRY_REL;       // la voiture doit être là (côté droit) pour prendre la bretelle
+const PIT_ARC_D = 8;                       // la voiture quitte l'axe de la voie 8 m avant l'axe de son box
+const PIT_RAMP_LAT = TRACK_W / 2 - 1.5;    // les bretelles rejoignent la piste 1,5 m à l'intérieur de son bord
+function hermiteSeg(x0, z0, a0, x1, z1, a1, k0, k1) {
+  const L = Math.hypot(x1 - x0, z1 - z0) || 1, m0 = L * k0, m1 = L * k1;
+  return { x0, z0, x1, z1, m0x: Math.cos(a0) * m0, m0z: Math.sin(a0) * m0, m1x: Math.cos(a1) * m1, m1z: Math.sin(a1) * m1 };
+}
+function hermiteAt(s, u) {
+  const u2 = u * u, u3 = u2 * u;
+  const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+  const d00 = 6 * u2 - 6 * u, d10 = 3 * u2 - 4 * u + 1, d01 = -6 * u2 + 6 * u, d11 = 3 * u2 - 2 * u;
+  const dx = d00 * s.x0 + d10 * s.m0x + d01 * s.x1 + d11 * s.m1x, dz = d00 * s.z0 + d10 * s.m0z + d01 * s.z1 + d11 * s.m1z;
+  return { x: h00 * s.x0 + h10 * s.m0x + h01 * s.x1 + h11 * s.m1x, z: h00 * s.z0 + h10 * s.m0z + h01 * s.z1 + h11 * s.m1z, a: Math.atan2(dz, dx), d: Math.hypot(dx, dz) };
+}
+let pitCache = null;
+function pitGeo() {                        // trajectoires fixes, recalculées si le circuit ou le nombre de garages change
+  ensurePitPath();
+  if (pitCache && pitCache.path === pitPath && pitCache.n === pitBoxCount) return pitCache;
+  const e = trackPoseRel(PIT_ENTRY_REL), x = trackPoseRel(PIT_EXIT_REL);
+  const p0 = pitPose(0, 0), p3 = pitPose(PIT_TOTAL, 0);
+  pitCache = {
+    path: pitPath, n: pitBoxCount, arcs: [],
+    entry: hermiteSeg(e.x + e.rx * PIT_RAMP_LAT, e.z + e.rz * PIT_RAMP_LAT, e.a, p0.x, p0.z, p0.a, 0.9, 0.9),
+    exit: hermiteSeg(p3.x, p3.z, p3.a, x.x + x.rx * PIT_RAMP_LAT, x.z + x.rz * PIT_RAMP_LAT, x.a, 0.9, 0.9)
+  };
+  return pitCache;
+}
+function pitRamps() { return pitGeo(); }
+function pitBoxXs(box) { return (box - (pitBoxCount - 1) / 2) * PIT_BOX_W; }   // abscisse du box le long de la voie (0 = ligne de départ)
+function pitBoxFrame(box) {                // position d'arrêt (et cap : nez vers le fond du box) d'un box
+  ensurePitPath();
+  const xs = pitBoxXs(box), c0 = pitPose(PIT_SERVICE_PROGRESS + xs, 0);
+  return { x: c0.x + c0.rx * PIT_GARAGE_LANE, z: c0.z + c0.rz * PIT_GARAGE_LANE, a: c0.a + Math.PI / 2, xs };
+}
+function pitArc(box) {                     // arc de la voie jusque dans le box
+  const g = pitGeo();
+  if (!g.arcs[box]) {
+    const f = pitBoxFrame(box), q0 = pitPose(PIT_SERVICE_PROGRESS + f.xs - PIT_ARC_D, 0);
+    g.arcs[box] = hermiteSeg(q0.x, q0.z, q0.a, f.x, f.z, f.a, 1.2, 1.1);
+  }
+  return g.arcs[box];
+}
+function nearPitArea(x, z, m) {            // vrai si (x,z) est dans (ou à moins de m mètres de) la zone stands + garages
+  let best = 1e18, bi = 0;
+  for (let i = 0; i < N; i++) { const dx = x - TX[i], dz = z - TZ[i], d = dx * dx + dz * dz; if (d < best) { best = d; bi = i; } }
+  const lat = (x - TX[bi]) * RGX[bi] + (z - TZ[bi]) * RGZ[bi];
+  return Math.abs(pitRelM(bi)) < 112 + m && lat > 6 - m && lat < PIT_LAT + 26 + m;
+}
+function pitTrack(c) {                     // suit la position sur le circuit pendant les stands (sans rails ni collisions)
+  const nr = nearest(c.x, c.z, c.idx), prev = c.idx;
+  c.idx = nr.i; c.dist = 0;
+  if (prev > N * 0.75 && c.idx < N * 0.25) {
+    c.cross++; c.pitSawLine = 1;
+    if (c.cross > c.maxCross) { c.maxCross = c.cross; c.pitCrossFlag = 1; }   // la ligne passée dans la voie des stands compte comme un tour
+  } else if (prev < N * 0.25 && c.idx > N * 0.75) { c.cross--; }
+  c.progress = c.cross * N + c.idx;
+}
+function pitPlace(c, p, speed, fwd) {
+  c.x = p.x; c.z = p.z; c.a = p.a; c.steer = 0; c.speed = speed;
+  if (fwd) { c.vx = Math.cos(p.a) * speed; c.vz = Math.sin(p.a) * speed; } else { c.vx = c.vz = 0; }
+}
+function pitBegin(c, box, cruise) {        // la voiture entre aux stands
+  const g = pitGeo(), p0 = pitPose(0, 0);
+  c.pitBox = Math.max(0, Math.min(box | 0, pitBoxCount - 1)); c.pitSub = 0; c.pitU = 0; c.pitProgress = 0;
+  c.pitSawLine = 0; c.pitCrossFlag = 0;
+  c.pitCruise = cruise || clamp(Math.abs(c.speed), 16, 38); c.pitSpeed = c.pitCruise;
+  c.pitSeg = hermiteSeg(c.x, c.z, c.a, g.entry.x1, g.entry.z1, p0.a, 0.9, 0.9);   // de là où elle est jusqu'au début de la voie
+}
+function pitLeave(c) { c.pitSub = 0; c.pitU = 1; c.pitSpeed = 7; }   // fin de l'arrêt : marche arrière hors du box
+// Fait avancer une voiture en mode stands 1 (entrée) ou 3 (sortie). Renvoie "service" (arrivée au box), "done" (de retour sur la piste) ou null.
+function pitMove(c, h, vOut) {
+  const g = pitGeo(), arc = pitArc(c.pitBox);
+  const laneEnd = PIT_SERVICE_PROGRESS + pitBoxXs(c.pitBox) - PIT_ARC_D;
+  let ev = null, p;
+  if (c.pitMode === 1) {
+    if (c.pitSub === 0) {                                   // bretelle : piste -> début de la voie
+      p = hermiteAt(c.pitSeg, c.pitU);
+      c.pitU = Math.min(1, c.pitU + c.pitCruise * h / Math.max(p.d, 1));
+      pitPlace(c, hermiteAt(c.pitSeg, c.pitU), c.pitCruise, true);
+      if (c.pitU >= 1) { c.pitSub = 1; c.pitProgress = 0; }
+    } else if (c.pitSub === 1) {                            // voie des stands : on ralentit avant l'arc
+      const v = Math.max(10, Math.min(c.pitCruise, Math.sqrt(100 + 28 * Math.max(0, laneEnd - c.pitProgress))));
+      c.pitProgress += v * h;
+      pitPlace(c, pitPose(Math.min(c.pitProgress, laneEnd), 0), v, true);
+      if (c.pitProgress >= laneEnd) { c.pitSub = 2; c.pitU = 0; }
+    } else {                                                // arc jusque dans le box, nez en avant
+      p = hermiteAt(arc, c.pitU);
+      c.pitU = Math.min(1, c.pitU + 10 * h / Math.max(p.d, 1));
+      pitPlace(c, hermiteAt(arc, c.pitU), 10, true);
+      if (c.pitU >= 1) ev = "service";
+    }
+  } else {
+    if (c.pitSub === 0) {                                   // marche arrière hors du box (le même arc, à l'envers)
+      p = hermiteAt(arc, c.pitU);
+      c.pitU = Math.max(0, c.pitU - 7 * h / Math.max(p.d, 1));
+      pitPlace(c, hermiteAt(arc, c.pitU), 7, false);
+      if (c.pitU <= 0) { c.pitSub = 1; c.pitProgress = laneEnd; c.pitSpeed = 7; }
+    } else if (c.pitSub === 1) {                            // on repart le long de la voie
+      c.pitSpeed = Math.min(vOut, c.pitSpeed + 22 * h);
+      c.pitProgress += c.pitSpeed * h;
+      pitPlace(c, pitPose(Math.min(c.pitProgress, PIT_TOTAL), 0), c.pitSpeed, true);
+      if (c.pitProgress >= PIT_TOTAL) { c.pitSub = 2; c.pitU = 0; c.pitSeg = g.exit; }
+    } else {                                                // bretelle de sortie : voie -> piste
+      p = hermiteAt(c.pitSeg, c.pitU);
+      c.pitU = Math.min(1, c.pitU + vOut * h / Math.max(p.d, 1));
+      pitPlace(c, hermiteAt(c.pitSeg, c.pitU), vOut, true);
+      if (c.pitU >= 1) ev = "done";
+    }
+  }
+  pitTrack(c);
+  return ev;
+}
+function setPitStatus(main,sub,show=true){const e=$("pitStatus");if(!e)return;e.hidden=!show;if(main)$("pitStatusMain").textContent=main;if(sub)$("pitStatusSub").textContent=sub;}
+function buildPitLaneRoad() {
+  ensurePitPath();
+  const pos=[],uv=[],idx=[];
+  const tex=makeTexture(64,256,(g,w,h)=>{
+    g.fillStyle="#46494f"; g.fillRect(0,0,w,h);
+    g.fillStyle="rgba(255,255,255,.06)"; for(let y=0;y<h;y+=10)g.fillRect(0,y,w,4);
+    g.fillStyle="#ffcf00"; g.fillRect(0,0,w*.06,h); g.fillRect(w*.94,0,w*.06,h);
+  },true);
+  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3});
+  const count=220;
+  for(let k=0;k<=count;k++){
+    const p=pitPose(PIT_TOTAL*k/count), hw=PIT_HALF_W;
+    pos.push(p.x+p.rx*(-hw),.06,p.z+p.rz*(-hw),p.x+p.rx*hw,.06,p.z+p.rz*hw);
+    uv.push(0,k*.6,1,k*.6);
+  }
+  for(let i=0;i<count;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}
+  const geo=new THREE.BufferGeometry(); geo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(idx); scene.add(new THREE.Mesh(geo,mat));
+
+  // Vraies bretelles d'accès : elles relient la piste à la pit-lane sans faire
+  // apparaître la voiture comme si elle traversait directement le mur.
+  const addConnector=(rel)=>{
+    const t=trackPoseRel(rel);
+    const edge={x:t.x+t.rx*(TRACK_W/2+0.35),z:t.z+t.rz*(TRACK_W/2+0.35)};
+    const pit=pitPose(rel===PIT_ENTRY_REL?0:PIT_TOTAL);
+    const hw=PIT_HALF_W;
+    const nx=t.rx, nz=t.rz;
+    const left={x:edge.x+nx*hw,z:edge.z+nz*hw};
+    const right={x:edge.x-nx*hw,z:edge.z-nz*hw};
+    const pl={x:pit.x+pit.rx*hw,z:pit.z+pit.rz*hw};
+    const pr={x:pit.x-pit.rx*hw,z:pit.z-pit.rz*hw};
+    const base=0.07, arr=[left.x,base,left.z,right.x,base,right.z,pl.x,base,pl.z,pr.x,base,pr.z];
+    const g=new THREE.BufferGeometry(); g.setAttribute("position",new THREE.Float32BufferAttribute(arr,3));
+    g.setAttribute("uv",new THREE.Float32BufferAttribute([0,0,1,0,0,1,1,1],2));
+    g.setIndex([0,1,2,1,3,2]); scene.add(new THREE.Mesh(g,mat));
+  };
+  // Bretelles courbes = exactement les trajectoires suivies par les voitures
+  const addRamp=(seg)=>{
+    const pos=[],uv=[],idx=[],n=40,hw=PIT_HALF_W;
+    for(let k=0;k<=n;k++){const p=hermiteAt(seg,k/n),rx=-Math.sin(p.a),rz=Math.cos(p.a);
+      pos.push(p.x-rx*hw,.07,p.z-rz*hw,p.x+rx*hw,.07,p.z+rz*hw);uv.push(0,k*.6,1,k*.6);}
+    for(let i=0;i<n;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2);}
+    const g=new THREE.BufferGeometry();g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+    g.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);scene.add(new THREE.Mesh(g,mat));
+  };
+  addRamp(pitRamps().entry);
+  addRamp(pitRamps().exit);
+}
+function pickStandIndices(count) {
+  // Choisit des emplacements de tribunes sur des portions assez droites, pour qu'elles ne débordent jamais sur la piste
+  const W = Math.max(2, Math.round(20 / (TRACK_LEN / N)));
+  const curv = i => { let mx = 0; for (let w = -W; w <= W; w++) { const d = Math.abs(wrap(TA[(i + w + N) % N] - TA[i])); if (d > mx) mx = d; } return mx; };
+  const used = [], out = [];
+  for (let s = 0; s < count; s++) {
+    const target = Math.round(((s + 1) / (count + 1)) * N);   // réparti autour du circuit, loin du départ/stand
+    let best = target, bestScore = 1e9;
+    for (let w = -60; w <= 60; w++) {
+      const k = (target + w + N) % N;
+      if (used.some(u => Math.min(Math.abs(u - k), N - Math.abs(u - k)) < 2 * W + 6)) continue;
+      if (Math.abs(pitRelM(k)) < 145) continue;   // jamais de tribune (ni de public) sur la voie des stands
+      const c = curv(k);
+      if (c < bestScore) { bestScore = c; best = k; }
+    }
+    used.push(best); out.push(best);
+  }
+  return out;
+}
+buildTrack();
+
+// Trajectoire idéale : une bande élastique qui se tend entre les bords de la piste
+const RLO = new Float32Array(N);   // décalage latéral de la trajectoire idéale
+const VP = new Float32Array(N);    // vitesse cible en chaque point (m/s)
+function racingLine() {
+  RLO.fill(0);
+  const lim = TRACK_W / 2 - 3.2;
+  for (let it = 0; it < 900; it++) {
+    for (let i = 0; i < N; i++) {
+      const p = (i + N - 1) % N, q = (i + 1) % N;
+      const px = TX[p] + RGX[p] * RLO[p], pz = TZ[p] + RGZ[p] * RLO[p];
+      const qx = TX[q] + RGX[q] * RLO[q], qz = TZ[q] + RGZ[q] * RLO[q];
+      const want = ((px + qx) / 2 - TX[i]) * RGX[i] + ((pz + qz) / 2 - TZ[i]) * RGZ[i];
+      RLO[i] += 0.5 * (clamp(want, -lim, lim) - RLO[i]);
+    }
+  }
+  const LX = new Float32Array(N), LZ = new Float32Array(N), ds = new Float32Array(N), v = new Float32Array(N);
+  for (let i = 0; i < N; i++) { LX[i] = TX[i] + RGX[i] * RLO[i]; LZ[i] = TZ[i] + RGZ[i] * RLO[i]; }
+  for (let i = 0; i < N; i++) { const q = (i + 1) % N; ds[i] = Math.hypot(LX[q] - LX[i], LZ[q] - LZ[i]); }
+  const k = 4;
+  for (let i = 0; i < N; i++) {
+    const a = (i - k + N) % N, c = (i + k) % N;
+    const abx = LX[i] - LX[a], abz = LZ[i] - LZ[a], acx = LX[c] - LX[a], acz = LZ[c] - LZ[a];
+    const cross = Math.abs(abx * acz - abz * acx);
+    const A = Math.hypot(abx, abz), B = Math.hypot(LX[c] - LX[i], LZ[c] - LZ[i]), C = Math.hypot(acx, acz);
+    const R = cross > 1e-6 ? A * B * C / (2 * cross) : 1e9;
+    v[i] = Math.min(VMAX_BOT, Math.sqrt(0.92 * ALAT * R));
+  }
+  for (let pass = 0; pass < 3; pass++) {
+    for (let s = 2 * N - 1; s >= 0; s--) { const i = s % N, q = (i + 1) % N; v[i] = Math.min(v[i], Math.sqrt(v[q] * v[q] + 2 * 0.85 * BRK * ds[i])); }
+    for (let s = 0; s < 2 * N; s++) { const i = s % N, q = (i + 1) % N; v[q] = Math.min(v[q], Math.sqrt(v[i] * v[i] + 2 * 9 * ds[i])); }
+  }
+  VP.set(v);
+}
+racingLine();
+function disposeScene(sc) {
+  if (!sc) return;
+  sc.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) {
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(m => { if (m.map) m.map.dispose(); if (m.envMap) m.envMap.dispose(); m.dispose(); });
+    }
+  });
+}
+function setTrack(key) {
+  if (!TRACKS[key]) return;
+  trackKey = key;
+  try { localStorage.setItem("gp_track", key); } catch (e) {}
+  CTRL = TRACKS[key].ctrl.map(p => [p[0] * SC, p[1] * SC]);
+  buildTrack();
+  pitPath=null;
+  ensurePitPath();
+  racingLine();
+  if (typeof renderer !== "undefined" && renderer) {
+    const keepCars = Object.values(carObjs);
+    keepCars.forEach(o => scene.remove(o.root));   // les voitures ne sont pas jetées, juste détachées le temps de reconstruire le décor
+    disposeScene(scene);
+    buildScene();
+    keepCars.forEach(o => scene.add(o.root));      // et rattachées à la nouvelle scène
+  }
+}
+
+const WIN = 40;
+function nearest(x, z, hint) {
+  let best = 1e18, bi = hint;
+  for (let k = -WIN; k <= WIN; k++) {
+    const i = (hint + k + N) % N, dx = x - TX[i], dz = z - TZ[i], d = dx * dx + dz * dz;
+    if (d < best) { best = d; bi = i; }
+  }
+  return { i: bi, d: Math.sqrt(best) };
+}
+function slotPose(slot) {
+  // Grille de départ classique, sur la piste elle-même (comme en vrai F1 — on ne part pas du garage,
+  // seule la voie des stands y mène pendant la course)
+  const row = slot >> 1, side = (slot & 1) ? 1 : -1;
+  const idx = (N - 4 - row * 3 - (slot & 1) + N) % N;
+  const a = TA[idx], off = side * TRACK_W * 0.22;
+  return { x: TX[idx] + RGX[idx] * off, z: TZ[idx] + RGZ[idx] * off, a, idx };
+}
+
+// Une voiture : c.x, c.z, c.a (cap), c.vx, c.vz, c.speed, c.steer
+function stepCar(c, thr, brk, steerIn, h) {
+  const off = c.dist > OFFD;
+  const ca = Math.cos(c.a), sa = Math.sin(c.a);
+  const sp = c.vx * ca + c.vz * sa, av = Math.abs(sp);
+  const grip = c.tireGrip || 1;
+  c.steer += (steerIn - c.steer) * Math.min(1, h * (off ? 6 : 10) * grip);
+  const wmax = Math.min(av / 9, (ALAT * grip) / Math.max(av, 1));  // vitesse de rotation max (rad/s) — réduite par l'usure des pneus
+  c.a += c.steer * wmax * h * (sp >= 0 ? 1 : -1);
+  const f = Math.cos(c.a), g = Math.sin(c.a), rx = -g, rz = f;
+  let vf = c.vx * f + c.vz * g, vl = c.vx * rx + c.vz * rz;
+  if (thr > 0) vf += Math.min(ACC, PWR / Math.max(vf, 1)) * thr * h;
+  if (brk > 0) {
+    if (vf > 0.5) { vf -= BRK * brk * h; if (vf < 0) vf = 0; }
+    else { vf -= 8 * brk * h; if (vf < -12) vf = -12; }
+  }
+  vf -= DRAG * vf * Math.abs(vf) * h + 0.03 * vf * h;
+  if (off) { vf -= vf * 0.6 * h; if (vf > 28) vf -= (vf - 28) * 2 * h; }
+  vl *= Math.exp(-(off ? 3 : 9) * h);
+  c.vx = f * vf + rx * vl; c.vz = g * vf + rz * vl;
+  c.x += c.vx * h; c.z += c.vz * h; c.speed = vf;
+}
+// Position sur le circuit, rails de sécurité, passages de la ligne
+function locate(c) {
+  const nr = nearest(c.x, c.z, c.idx);
+  // Le long de la voie des stands, seul le côté DROIT (côté stands) s'élargit.
+  // Avant, le côté gauche s'élargissait aussi : la voiture traversait le rail visible.
+  const side = (c.x - TX[nr.i]) * RGX[nr.i] + (c.z - TZ[nr.i]) * RGZ[nr.i];
+  const limit = (inPitZone(nr.i) && side > 0) ? WALL_D2 : WALL_D;
+  let hit = false, crossed = 0;
+  if (nr.d > limit) {
+    const k = (limit - 0.4) / nr.d;
+    c.x = TX[nr.i] + (c.x - TX[nr.i]) * k; c.z = TZ[nr.i] + (c.z - TZ[nr.i]) * k;
+    c.vx *= 0.5; c.vz *= 0.5; nr.d = limit - 0.4; hit = true;
+  }
+  const prev = c.idx;
+  c.idx = nr.i; c.dist = nr.d;
+  if (prev > N * 0.75 && c.idx < N * 0.25) { c.cross++; if (c.cross > c.maxCross) { c.maxCross = c.cross; crossed = 1; } }
+  else if (prev < N * 0.25 && c.idx > N * 0.75) { c.cross--; }
+  c.progress = c.cross * N + c.idx;
+  return { hit, crossed };
+}
+// Contacts entre voitures : on se repousse doucement
+function separate(c, others) {
+  if (c.f) return false;
+  let touched = false;
+  const ca = Math.cos(c.a), sa = Math.sin(c.a);
+  for (const o of others) {
+    if (o === c || o.f) continue;
+    const dx = o.x - c.x, dz = o.z - c.z;
+    if (dx * dx + dz * dz > 36) continue;
+    const lon = dx * ca + dz * sa, lat = -dx * sa + dz * ca;
+    const pl = 5.0 - Math.abs(lon), pw = 2.1 - Math.abs(lat);
+    if (pl <= 0 || pw <= 0) continue;
+    touched = true;
+    if (pw < pl) {
+      const s = lat > 0 ? -1 : 1;
+      c.x += -sa * s * pw * 0.6; c.z += ca * s * pw * 0.6;
+      c.vx *= 0.996; c.vz *= 0.996;
+    } else {
+      const s = lon > 0 ? -1 : 1;
+      c.x += ca * s * pl * 0.6; c.z += sa * s * pl * 0.6;
+      if (lon > 0) { c.vx *= 0.985; c.vz *= 0.985; }
+    }
+  }
+  return touched;
+}
+// Pilote automatique : suit la trajectoire idéale et respecte le profil de vitesse
+function botControl(b, others, skill) {
+  const ds = TRACK_LEN / N, v = Math.max(0, b.speed);
+  const ca = Math.cos(b.a), sa = Math.sin(b.a);
+  let want = 0, slow = 1;
+  for (const o of others) {
+    if (o === b || o.f) continue;
+    const dx = o.x - b.x, dz = o.z - b.z;
+    if (dx * dx + dz * dz > 400) continue;
+    const lon = dx * ca + dz * sa, lat = -dx * sa + dz * ca;
+    if (lon > 0 && lon < 18 && Math.abs(lat) < 3.4) {
+      want += lat > 0 ? -4.5 : 4.5;
+      if (lon < 10) slow = Math.min(slow, 0.94);
+    }
+  }
+  b.bias += (b.lane + clamp(want, -5, 5) - b.bias) * 0.04;
+  const i = (b.idx + Math.max(2, Math.round((7 + v * 0.40) / ds))) % N;
+  const lim = TRACK_W / 2 - 2.3;
+  const lateral = clamp(RLO[i] + b.bias, -lim, lim);
+  const tx = TX[i] + RGX[i] * lateral, tz = TZ[i] + RGZ[i] * lateral;
+  const d = wrap(Math.atan2(tz - b.z, tx - b.x) - b.a);
+  const steer = clamp(d * 3, -1, 1);
+  const j = (b.idx + 2 + Math.round(v * 0.12 / ds)) % N;
+  const vt = VP[j] * skill * slow, err = v - vt;
+  return { thr: err < 0 ? clamp(-err / 3, 0, 1) : 0, brk: err > 0 ? clamp((err - 0.8) / 4, 0, 1) : 0, steer };
+}
+// PHYS_END
+
+/* ------------------------------ Joueurs ------------------------------ */
+const COLORS = ["#e10600", "#00a3e0", "#ffcf00", "#12b76a", "#ff7a00", "#9b5de5", "#ff4fa3", "#f2f2f2"];
+const COLOR_NAMES = ["Rouge", "Bleu", "Jaune", "Vert", "Orange", "Violet", "Rose", "Blanc"];
+const BOT_NAMES = ["Falcon", "Turbo", "Comète", "Vortex", "Éclair", "Mistral", "Titan", "Nova", "Blaze", "Orage"];
+const botInfoFor = i => ({ name: BOT_NAMES[i % BOT_NAMES.length], color: COLORS[(i * 3 + 1) % COLORS.length] });
+const STEP = 1 / 120;
+const me = {
+  id: Math.random().toString(36).slice(2, 8), name: "", color: COLORS[0],
+  x: 0, z: 0, a: 0, vx: 0, vz: 0, speed: 0, steer: 0, idx: 0, dist: 0, thr: 0, brk: 0,
+  cross: 0, maxCross: 0, progress: 0, lapStart: 0, lastLap: 0, best: 0, f: 0,
+  tireLaps: 0, tireGrip: 1, tireBlown: 0, dq: 0, pitMode: 0, pitProgress: 0, pitService: 0, pitCompleted: 0, pitCrewSpawned: 0
+};
+try {
+  me.name = localStorage.getItem("gp_name") || "";
+  me.color = localStorage.getItem("gp_color") || me.color;
+} catch (e) {}
+if (!COLORS.includes(me.color)) me.color = COLORS[0];
+
+let phase = "menu";          // menu | lobby | countdown | race | finished
+let laps = 3, raceOrder = [], raceBots = [], raceId = 0, cdStart = 0, raceStart = 0, isHost = false;
+let people = {};             // présents dans la salle : id -> {id,name,color}
+let remotes = {};            // voitures des autres (joueurs et bots) : id -> état réseau
+let botInfo = {};            // bots : id -> {name,color}
+let bots = [];               // bots simulés (seulement chez celui qui lance la course)
+let roomCode = null, client = null, channel = null, connected = false;
+
+/* ------------------------------ Réseau (Supabase Realtime) ------------------------------ */
+function disconnect() {
+  if (channel && client) { try { client.removeChannel(channel); } catch (e) {} }
+  channel = null; client = null; connected = false; roomCode = null;
+  people = {}; remotes = {};
+}
+function connect(code) {
+  disconnect();
+  roomCode = code;
+  try {
+    client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { realtime: { params: { eventsPerSecond: 20 } } });
+    channel = client.channel("gp3d-" + code, { config: { broadcast: { self: false, ack: false }, presence: { key: me.id } } });
+  } catch (e) {
+    joinStatus("La configuration Supabase n'est pas valide. Vérifie l'URL et la clé.");
+    disconnect(); return;
+  }
+  const ch = channel;
+  ch.on("broadcast", { event: "s" }, m => onState(m.payload))
+    .on("broadcast", { event: "go" }, m => onStart(m.payload))
+    .on("presence", { event: "sync" }, syncPeople);
+  const timer = setTimeout(() => {
+    if (ch === channel && !connected) {
+      joinStatus("Connexion impossible. Vérifie l'URL, la clé et que Realtime est activé dans Supabase.");
+      disconnect();
+    }
+  }, 9000);
+  ch.subscribe(async status => {
+    if (ch !== channel) return;
+    if (status === "SUBSCRIBED") {
+      clearTimeout(timer); connected = true;
+      try { await ch.track({ name: me.name, color: me.color }); } catch (e) {}
+      syncPeople(); enterLobby();
+    } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      if (!connected) {
+        clearTimeout(timer);
+        joinStatus("Connexion impossible. Vérifie l'URL, la clé et que Realtime est activé dans Supabase.");
+        disconnect();
+      } else { setNote("Connexion instable, les autres voitures peuvent saccader."); }
+    }
+  });
+}
+function syncPeople() {
+  if (!channel) return;
+  const st = channel.presenceState(), next = {};
+  for (const key in st) {
+    const m = st[key][0] || {};
+    next[key] = { id: key, name: String(m.name || "Pilote").slice(0, 14), color: COLORS.includes(m.color) ? m.color : COLORS[0] };
+  }
+  next[me.id] = { id: me.id, name: me.name, color: me.color };
+  people = next;
+  for (const id in remotes) if (id[0] !== "b" && !people[id]) delete remotes[id];
+  if (phase === "lobby") renderPeople();
+}
+function onState(p) {
+  if (!p || p.i === me.id || !people[p.i]) return;
+  const racing = phase === "countdown" || phase === "race" || phase === "finished";
+  if (racing && p.r !== raceId) return;
+  const now = performance.now();
+  let r = remotes[p.i];
+  if (!r) { r = remotes[p.i] = { rx: p.x, rz: p.z, ra: p.a, sv: 0 }; }
+  r.x = p.x; r.z = p.z; r.a = p.a; r.v = p.v; r.p = p.p; r.c = p.c; r.ph = p.ph; r.f = p.f; r.tRecv = now;
+  if (Array.isArray(p.b) && !isHost) {
+    for (const a of p.b) {
+      const id = "b" + a[0];
+      let b = remotes[id];
+      if (!b) b = remotes[id] = { rx: a[1], rz: a[2], ra: a[3], sv: 0 };
+      b.x = a[1]; b.z = a[2]; b.a = a[3]; b.v = a[4]; b.p = a[5]; b.c = a[6]; b.f = a[7]; b.ph = "race"; b.tRecv = now;
+    }
+  }
+}
+let lastSend = 0;
+const r2 = v => Math.round(v * 100) / 100;
+function sendState(t) {
+  if (!channel || !connected || t - lastSend < 125) return;
+  lastSend = t;
+  const payload = {
+    i: me.id, r: raceId, x: r2(me.x), z: r2(me.z), a: r2(me.a), v: Math.round(me.speed * 10) / 10,
+    p: me.progress, c: me.cross, ph: phase, f: Math.round(me.f), pit: me.pitMode
+  };
+  if (isHost && bots.length) {
+    payload.b = bots.map(b => [Number(b.id.slice(1)), r2(b.x), r2(b.z), r2(b.a), Math.round(b.speed * 10) / 10, b.progress, b.cross, Math.round(b.f)]);
+  }
+  channel.send({ type: "broadcast", event: "s", payload });
+}
+
+/* ------------------------------ Course ------------------------------ */
+function resetMe(slot) {
+  const s = slotPose(slot);
+  me.x = s.x; me.z = s.z; me.a = s.a; me.vx = me.vz = me.speed = me.steer = 0;
+  me.idx = s.idx; me.dist = 0; me.cross = 0; me.maxCross = 0; me.progress = s.idx;
+  me.lapStart = 0; me.lastLap = 0; me.best = 0; me.f = 0; me.thr = me.brk = 0; me.pitCd = 4;
+  me.tireLaps = 0; me.tireGrip = 1; me.tireBlown = 0; me.dq = 0; me.pitMode=0; me.pitProgress=0; me.pitService=0; me.pitCompleted=0; me.nextPitLap=2; me.pitDeadline=0; me.pitSlot=slot; me.pitSawLine=0; me.pitCrossFlag=0;
+}
+// Usure des pneus : au-delà de 2 tours sans passage aux stands, l'adhérence chute, puis c'est l'éclatement, puis la disqualification
+function tireSeverity(c) {
+  const overdue = Math.max(0, (c.tireLaps || 0) - 2);
+  return overdue;
+}
+function tireState(c) {
+  if (c.dq) return "dq";
+  if (c.tireBlown) return "blown";
+  if (c.tireLaps >= 2) return "due";
+  if (c.tireLaps >= 1) return "used";
+  return "fresh";
+}
+function updateTires(c, t) {
+  const lapsUsed = c.tireLaps || 0;
+  const overdue = Math.max(0, lapsUsed - 2);
+  c.tireGrip = clamp(1 - overdue * 0.8, 0.35, 1);
+
+  // Les pneus durent 2 tours. L'entrée des stands est juste AVANT la ligne : il faut s'arrêter à la fin du
+  // 2e tour. Sinon, 2 tours d'usure au compteur et la ligne passée sur la piste : ils éclatent 40 m plus loin.
+  if (lapsUsed >= 2 && !c.pitMode) {
+    const rel = pitRelativeFromCar(c);
+    const blowoutRel = 40;   // 40 m après la ligne
+    if (rel >= blowoutRel) {
+      if (!c.tireBlown) {
+        c.tireBlown = 1;
+        camS.shake = 1;
+        sfxBlowout();
+        sparkBurst(c.x, c.z, 26);
+        if (c === me) flash("PNEU ÉCLATÉ — PIT-STOP OBLIGATOIRE", 1800);
+      }
+      if (c === me && !c.dq) disqualify(t);
+    }
+  }
+}
+function disqualify(t) {
+  me.dq = 1; me.f = raceNow(t) || 0.001;
+  setPhase("finished");
+  flash("DISQUALIFIÉ — pneus non changés dans le délai obligatoire", 2600);
+  sfxCrash(1);
+  setTimeout(() => { if (phase === "finished") showResults(); }, 2200);
+}
+function requestStart() {
+  const ids = Object.keys(people).sort().slice(0, 6);
+  const nb = Math.max(0, Math.min(+$("botsSel").value, 10 - ids.length));
+  const payload = { order: ids, laps: +$("lapsSel").value, rid: Date.now(), host: me.id, nb, lvl: +$("lvlSel").value, trk: $("trackSel").value };
+  if (channel && connected) channel.send({ type: "broadcast", event: "go", payload });
+  onStart(payload);
+}
+function onStart(pl) {
+  if (!pl || phase === "countdown" || phase === "race") return;
+  const slot = pl.order.indexOf(me.id);
+  if (slot < 0) { setNote("La salle est pleine pour cette course. Tu pourras jouer à la suivante."); return; }
+  raceOrder = pl.order; laps = pl.laps; raceId = pl.rid; isHost = pl.host === me.id;
+  if (pl.trk && pl.trk !== trackKey) setTrack(pl.trk);
+  raceBots = []; botInfo = {}; remotes = {}; bots = [];
+  for (let i = 0; i < pl.nb; i++) { const id = "b" + i; raceBots.push(id); botInfo[id] = botInfoFor(i); }
+  // Autant de garages que de voitures (joueurs + bots), chacun au nom de son pilote
+  pitBoxCount = Math.max(1, Math.min(PIT_MAXBOX, raceOrder.length + raceBots.length)); pitCache = null;
+  try { if (typeof renderer !== "undefined" && renderer && scene) buildPaddock(); } catch (e) { console.warn("Garages non reconstruits", e); }
+  resetMe(slot);
+  if (isHost) {
+    raceBots.forEach((id, i) => {
+      const s = slotPose(raceOrder.length + i);
+      bots.push({ id, x: s.x, z: s.z, a: s.a, vx: 0, vz: 0, speed: 0, steer: 0, idx: s.idx, dist: 0,
+        cross: 0, maxCross: 0, progress: s.idx, f: 0, lane: ((i % 5) - 2) * 1.4, bias: 0,
+        skill: pl.lvl * (0.985 + Math.random() * 0.03), stuck: 0, thr: 0, brk: 0, pitSlot: raceOrder.length + i,
+        tireLaps: 0, tireGrip: 1, tireBlown: 0, dq: 0, pitMode: 0, pitProgress: 0, pitService: 0, pitCompleted: 0, pitCrewSpawned: 0, pitDeadline: 0 });
+    });
+  }
+  camS.a = me.a; camS.shake = 0;
+  cdStart = performance.now(); raceStart = cdStart + 3800;
+  setPhase("countdown");
+}
+function raceNow(t) { return t - raceStart; }
+function onLap(t) {
+  const now = raceNow(t);
+  if (me.cross === 1) { me.lapStart = now; }
+  else {
+    const lt = now - me.lapStart; me.lapStart = now; me.lastLap = lt;
+    const isBest = !me.best || lt < me.best; if (isBest) me.best = lt;
+    if (me.cross !== laps + 1) sfxLap(isBest);
+    me.tireLaps++;
+    if (me.tireLaps >= 2 && !me.pitMode && !me.pitCompleted) me.pitDeadline = now + 9000;
+    if (me.tireLaps === 1 && laps - (me.cross - 1) >= 2) flash("Pneus usés : entre aux stands à la fin de ce tour, avant la ligne", 3200);
+  }
+  if (me.cross === laps + 1) finish(t);
+  else if (me.cross === laps) { flash("Dernier tour", 1500); sfxLastLap(); }
+}
+function finish(t) {
+  me.pitMode=0;setPitStatus("","",false);
+  if(me.tireLaps>=3){disqualify(t);return;}
+  me.f = raceNow(t);
+  setPhase("finished");
+  flash("Arrivée !", 1700);
+  const fpos = standings().findIndex(e => e.me) + 1;
+  sfxFinish(fpos === 1); if (fpos <= 3) confetti(me.x, me.z, fpos === 1 ? 200 : 90);
+  setTimeout(() => { if (phase === "finished") showResults(); }, 1700);
+}
+function respawn() {
+  if (phase !== "race" && phase !== "finished") return;
+  me.x = TX[me.idx]; me.z = TZ[me.idx]; me.a = TA[me.idx];
+  me.vx = me.vz = me.speed = me.steer = 0; me.dist = 0;
+}
+function botSkill(b) {
+  if (b.f) return 0.35;
+  let best = me.progress;
+  for (const id of raceOrder) { const r = remotes[id]; if (r && r.p > best) best = r.p; }
+  const gap = (best - b.progress) / N * TRACK_LEN;      // positif : le bot est derrière
+  return b.skill * (1 + clamp(gap / 2500, -0.025, 0.03));
+}
+function buildOthers() {
+  const arr = [];
+  for (const id in remotes) { const r = remotes[id]; arr.push({ x: r.rx, z: r.rz, f: r.f || 0 }); }
+  for (const b of bots) arr.push(b);
+  return arr;
+}
+let others = [];
+
+// Retourne la position de la voiture par rapport à la ligne de départ/arrivée.
+//  > 0 = après la ligne dans le sens de course
+//  < 0 = avant la ligne dans le sens de course
+function pitRelativeFromCar(car){
+  const hint = Number.isFinite(car.idx) ? car.idx : 0;
+  const n = nearest(car.x, car.z, hint);
+  let d = n.i;
