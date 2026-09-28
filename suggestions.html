@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="logo1.png">
+
+    <title>Boîte à idées — Claudel média</title>
+
+    <link rel="stylesheet" href="style.css?v=15">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="public.js"></script>
+
+</head>
+
+<body>
+
+    <!-- BOUTON DU MENU -->
+    <button
+        class="menu-toggle"
+        id="menuToggle"
+        aria-label="Ouvrir ou fermer le menu"
+        type="button">
+        <span>☰</span>
+    </button>
+
+    <!-- MENU LATÉRAL -->
+    <aside class="sidebar" id="sidebar"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("sidebar").classList.add("collapsed");}</script>
+
+        <div class="sidebar-label">
+            Navigation
+        </div>
+
+    <nav id="sidebarNav">
+
+        <a href="index.html">
+            <span class="icon"><img src="home.png" alt="Accueil" onerror="this.outerHTML='🏠'"></span>
+            <span class="text">Accueil</span>
+        </a>
+
+        <a href="journaux.html">
+            <span class="icon"><img src="journaux.png" alt="Journaux" onerror="this.outerHTML='📰'"></span>
+            <span class="text">Journaux</span>
+        </a>
+
+        <a href="audio.html">
+            <span class="icon"><img src="audio.png" alt="Webradio" onerror="this.outerHTML='📻'"></span>
+            <span class="text">Webradio</span>
+        </a>
+		
+        <a href="videos.html">
+            <span class="icon"><img src="video.png" alt="Web TV" onerror="this.outerHTML='🎥'"></span>
+            <span class="text">Web TV</span>
+        </a>		
+        <a href="team.html">
+            <span class="icon"><img src="team.png" alt="Nos équipes" onerror="this.outerHTML='👥'"></span>
+            <span class="text">Nos équipes</span>
+        </a>
+        <a href="suggestions.html">
+            <span class="icon"><img src="suggestions.png" alt="Boîte à idées" onerror="this.outerHTML='💡'"></span>
+            <span class="text">Boîte à idées</span>
+        </a>
+    </nav>
+
+
+        <div class="sidebar-footer">
+            <div class="sidebar-footer-text">
+                © 2026 Claudel média
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- CONTENU PRINCIPAL -->
+    <div class="page-content" id="pageContent"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("pageContent").classList.add("expanded");}</script>
+
+        <main>
+
+            <header class="page-hero">
+                <div class="page-live">
+                    <span class="page-live-dot"></span>
+                    Claudel média
+                </div>
+
+                <h1>Boîte à idées</h1>
+
+                <p>
+                    Une idée, une envie, une remarque sur le site ou sur nos contenus ?
+                    Dis-nous tout, ce message reste entre toi et l'équipe de Claudel média.
+                </p>
+            </header>
+
+            <section class="container">
+
+                <div class="panel-card" id="suggestionPanel">
+
+                    <div class="form-group">
+                        <label for="suggestionName">Ton prénom (Obligatoire)</label>
+                        <input
+                            id="suggestionName"
+                            type="text"
+                            placeholder="Ex : Sara"
+							required
+                        >
+                        <p class="field-hint">
+                            Ça nous permet de te répondre ou de te recontacter si besoin.
+                            Sans nom, ton message reste anonyme pour nous aussi.
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="suggestionEmail">Ton email (obligatoire)</label>
+                        <input
+                            id="suggestionEmail"
+                            type="email"
+                            placeholder="ton.email@exemple.com"
+							required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="suggestionMessage">Ton message</label>
+                        <textarea
+                            id="suggestionMessage"
+                            rows="6"
+                            placeholder="Écris ici ton idée, ta suggestion ou ta remarque..."
+                        ></textarea>
+                    </div>
+
+                    <button class="button" id="submitSuggestion" onclick="submitSuggestion()">
+                        Envoyer mon message
+                    </button>
+
+                    <p id="suggestionFeedback" class="form-feedback"></p>
+
+                    <p class="field-hint" style="margin-top:18px;">
+                        🔒 Ce message est privé : seule l'équipe de Claudel média peut le lire.
+                        Merci de rester respectueux·se — les messages inappropriés pourront être signalés.
+                    </p>
+
+                </div>
+
+            </section>
+
+        </main>
+
+        <footer>
+            © 2026 Claudel média
+        </footer>
+
+    </div>
+
+    <script>
+
+        async function submitSuggestion() {
+
+            const name = document.getElementById("suggestionName").value.trim();
+            const email = document.getElementById("suggestionEmail").value.trim();
+            const message = document.getElementById("suggestionMessage").value.trim();
+            const feedback = document.getElementById("suggestionFeedback");
+            const button = document.getElementById("submitSuggestion");
+
+            feedback.className = "form-feedback";
+            feedback.textContent = "";
+
+			if (!name || !email || !message) {
+				feedback.textContent = "Remplis ton prénom, ton e-mail et ton message avant d'envoyer.";
+				feedback.className = "form-feedback error";
+				return;
+			}
+
+			if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+				feedback.textContent = "Entre une adresse e-mail valide, par exemple ton.email@exemple.com.";
+				feedback.className = "form-feedback error";
+				return;
+			}
+            button.disabled = true;
+            button.textContent = "Envoi...";
+
+            const { error } = await supabaseClient
+                .from("suggestions")
+                .insert({
+                    name: name || null,
+                    email: email || null,
+                    message: message
+                });
+
+            button.disabled = false;
+            button.textContent = "Envoyer mon message";
+
+            if (error) {
+                console.error(error);
+                feedback.textContent = "Une erreur est survenue, réessaie plus tard.";
+                feedback.className = "form-feedback error";
+                return;
+            }
+
+            document.getElementById("suggestionName").value = "";
+            document.getElementById("suggestionEmail").value = "";
+            document.getElementById("suggestionMessage").value = "";
+
+            feedback.textContent = "Merci ! Ton message a bien été envoyé à l'équipe. 💌";
+            feedback.className = "form-feedback success";
+
+        }
+
+    </script>
+
+</body>
+
+</html>

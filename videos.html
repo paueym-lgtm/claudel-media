@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo1.png">
+<title>Claudel TV — Claudel média</title>
+
+<link rel="stylesheet" href="style.css?v=15">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="public.js"></script>
+
+</head>
+
+<body>
+
+<button id="menuToggle" class="menu-toggle">
+    <span>☰</span>
+</button>
+
+<aside id="sidebar" class="sidebar"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("sidebar").classList.add("collapsed");}</script>
+
+
+
+    <div class="sidebar-label">Navigation</div>
+
+    <nav id="sidebarNav">
+        <a href="index.html">
+            <span class="icon"><img src="home.png" alt="Accueil" onerror="this.outerHTML='🏠'"></span>
+            <span class="text">Accueil</span>
+        </a>
+
+        <a href="journaux.html">
+            <span class="icon"><img src="journaux.png" alt="Journaux" onerror="this.outerHTML='📰'"></span>
+            <span class="text">Journaux</span>
+        </a>
+        <a href="audio.html">
+            <span class="icon"><img src="audio.png" alt="Webradio" onerror="this.outerHTML='📻'"></span>
+            <span class="text">Webradio</span>
+        </a>
+        <a href="videos.html">
+            <span class="icon"><img src="video.png" alt="Web TV" onerror="this.outerHTML='🎥'"></span>
+            <span class="text">Web TV</span>
+        </a>
+        <a href="team.html">
+            <span class="icon"><img src="team.png" alt="Nos équipes" onerror="this.outerHTML='👥'"></span>
+            <span class="text">Nos équipes</span>
+        </a>
+        <a href="suggestions.html">
+            <span class="icon"><img src="suggestions.png" alt="Boîte à idées" onerror="this.outerHTML='💡'"></span>
+            <span class="text">Boîte à idées</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-footer-text">© 2026 Claudel média</div>
+    </div>
+
+</aside>
+
+<div id="pageContent" class="page-content"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("pageContent").classList.add("expanded");}</script>
+
+<section class="page-hero">
+    <div class="page-live">
+        <span class="page-live-dot"></span>
+        Claudel média
+    </div>
+
+    <h1>Web TV</h1>
+    <p>Les reportages, émissions et créations de Claudel média.</p>
+</section>
+
+<main class="container">
+
+    <div id="videos">
+        <div class="empty">Chargement des vidéos...</div>
+    </div>
+
+</main>
+
+<footer>
+    © 2026 Claudel média 
+</footer>
+
+</div>
+
+<script>
+
+async function loadVideos() {
+
+    const container = document.getElementById("videos");
+
+    const [categoriesRes, videosRes] = await Promise.all([
+
+        supabaseClient
+            .from("categories")
+            .select("*")
+            .eq("content_type", "videos")
+            .order("name", { ascending: true }),
+
+        supabaseClient
+            .from("videos")
+            .select("*")
+            .eq("published", true)
+            .order("created_at", { ascending: false })
+
+    ]);
+
+    if (videosRes.error) {
+
+        console.error(videosRes.error);
+
+        container.innerHTML =
+            '<div class="empty">Impossible de charger les vidéos.</div>';
+
+        return;
+    }
+
+    const data = videosRes.data;
+    const categories = categoriesRes.data || [];
+
+    if (!data || data.length === 0) {
+
+        container.innerHTML =
+            '<div class="empty">Aucune vidéo publiée pour le moment.</div>';
+
+        return;
+    }
+
+    function cardHTML(video) {
+
+        const videoId = "video-" + Math.random().toString(36).slice(2, 10);
+
+        return `
+            <article class="card">
+
+                <div class="video-wrap" id="${videoId}">
+                    <video controls preload="metadata"
+                        ${video.thumbnail_url ? `poster="${video.thumbnail_url}"` : ""}
+                        onerror="showVideoFallback('${videoId}', '${encodeURI(video.video_url)}')">
+                        <source src="${video.video_url}" type="video/mp4">
+                        Votre navigateur ne supporte pas la vidéo.
+                    </video>
+                </div>
+
+                <h2>${escapeHTML(video.title)}</h2>
+
+                <p>${escapeHTML(video.description || "")}</p>
+
+                <div class="date">
+                    ${new Date(video.created_at).toLocaleDateString("fr-CA")}
+                </div>
+
+            </article>
+        `;
+
+    }
+
+    const groups = categories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        items: data.filter(v => v.category_id === cat.id)
+    })).filter(group => group.items.length > 0);
+
+    const uncategorized = data.filter(v =>
+        !v.category_id || !categories.some(c => c.id === v.category_id)
+    );
+
+    let html = "";
+
+    groups.forEach(group => {
+        html += `
+            <h3 class="section-title" style="margin-top:36px;">${escapeHTML(group.name)}</h3>
+            <div class="grid scroll-grid">${group.items.map(cardHTML).join("")}</div>
+        `;
+    });
+
+    if (uncategorized.length > 0) {
+
+        html += `
+            ${groups.length > 0 ? `<h3 class="section-title" style="margin-top:36px;">Autres vidéos</h3>` : ""}
+            <div class="grid scroll-grid">${uncategorized.map(cardHTML).join("")}</div>
+        `;
+
+    }
+
+    container.innerHTML = html;
+
+    enhanceScrollGrids(container);
+
+}
+
+function showVideoFallback(wrapId, encodedUrl) {
+
+    const wrap = document.getElementById(wrapId);
+    if (!wrap || wrap.dataset.fallbackShown) return;
+
+    wrap.dataset.fallbackShown = "1";
+
+    wrap.innerHTML = `
+        <div class="video-fallback">
+            <div class="video-fallback-icon">🎬</div>
+            <p>La lecture directe n'a pas fonctionné pour cette vidéo.</p>
+            <a class="button" href="${decodeURI(encodedUrl)}" target="_blank" rel="noopener">
+                Ouvrir / télécharger la vidéo
+            </a>
+        </div>
+    `;
+
+}
+
+function escapeHTML(text) {
+
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+loadVideos();
+
+</script>
+
+</body>
+</html>

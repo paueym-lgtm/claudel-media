@@ -1,0 +1,312 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="logo1.png">
+
+    <title>Nos équipes — Claudel média</title>
+
+    <link rel="stylesheet" href="style.css?v=15">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="public.js"></script>
+
+</head>
+
+<body>
+
+    <!-- BOUTON DU MENU -->
+    <button
+        class="menu-toggle"
+        id="menuToggle"
+        aria-label="Ouvrir ou fermer le menu"
+        type="button">
+        <span>☰</span>
+    </button>
+
+    <!-- MENU LATÉRAL -->
+    <aside class="sidebar" id="sidebar"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("sidebar").classList.add("collapsed");}</script>
+
+        <div class="sidebar-label">
+            Navigation
+        </div>
+
+    <nav id="sidebarNav">
+
+        <a href="index.html">
+            <span class="icon"><img src="home.png" alt="Accueil" onerror="this.outerHTML='🏠'"></span>
+            <span class="text">Accueil</span>
+        </a>
+
+
+
+        <a href="journaux.html">
+            <span class="icon"><img src="journaux.png" alt="Journaux" onerror="this.outerHTML='📰'"></span>
+            <span class="text">Journaux</span>
+        </a>
+
+        <a href="audio.html">
+            <span class="icon"><img src="audio.png" alt="Webradio" onerror="this.outerHTML='📻'"></span>
+            <span class="text">Webradio</span>
+        </a>
+		
+        <a href="videos.html">
+            <span class="icon"><img src="video.png" alt="Web TV" onerror="this.outerHTML='🎥'"></span>
+            <span class="text">Web TV</span>
+        </a>		
+        <a href="team.html">
+            <span class="icon"><img src="team.png" alt="Nos équipes" onerror="this.outerHTML='👥'"></span>
+            <span class="text">Nos équipes</span>
+        </a>
+        <a href="suggestions.html">
+            <span class="icon"><img src="suggestions.png" alt="Boîte à idées" onerror="this.outerHTML='💡'"></span>
+            <span class="text">Boîte à idées</span>
+        </a>	
+    </nav>
+
+
+        <div class="sidebar-footer">
+            <div class="sidebar-footer-text">
+                © 2026 Claudel média
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- CONTENU PRINCIPAL -->
+    <div class="page-content" id="pageContent"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("pageContent").classList.add("expanded");}</script>
+
+        <main>
+
+            <header class="page-hero">
+                <div class="page-live">
+                    <span class="page-live-dot"></span>
+                    Claudel média
+                </div>
+
+                <h1>Nos équipes</h1>
+
+                <p>
+                    Découvre les équipes et les membres
+                    qui font vivre Claudel média.
+                </p>
+            </header>
+
+            <section
+                class="teams-container"
+                id="teamsContainer">
+
+                <p class="loading">
+                    Chargement des équipes...
+                </p>
+
+            </section>
+
+        </main>
+
+        <footer>
+            © 2026 Claudel média
+        </footer>
+
+    </div>
+
+    <script>
+
+        function toggleCollapse(header) {
+            header.classList.toggle("collapsed");
+            const grid = header.nextElementSibling;
+            if (grid) grid.classList.toggle("collapsed-grid");
+        }
+
+        async function loadTeams() {
+            const container = document.getElementById("teamsContainer");
+
+            const {
+                data: teams,
+                error: teamsError
+            } = await supabaseClient
+                .from("media_teams")
+                .select("*")
+                .eq("published", true)
+                .order("display_order", {
+                    ascending: true
+                });
+
+            if (teamsError) {
+                console.error(teamsError);
+
+                container.innerHTML = `
+                    <p class="error-message">
+                        Impossible de charger les équipes.
+                    </p>
+                `;
+
+                return;
+            }
+
+            if (!teams || teams.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-message">
+                        Aucune équipe n'est encore publiée.
+                    </div>
+                `;
+
+                return;
+            }
+
+            container.innerHTML = "";
+
+            for (const team of teams) {
+                const teamSection = document.createElement("section");
+
+                teamSection.className = "team-section";
+
+                const teamImage = team.photo_url
+                    ? `
+                        <img
+                            src="${team.photo_url}"
+                            alt="${escapeHTML(team.name)}">
+                    `
+                    : "";
+
+                teamSection.innerHTML = `
+                    <div class="team-header">
+                        ${teamImage}
+
+                        <div>
+                            <h2>${escapeHTML(team.name)}</h2>
+
+                            ${
+                                team.description
+                                    ? `
+                                        <p>
+                                            ${escapeHTML(team.description)}
+                                        </p>
+                                    `
+                                    : ""
+                            }
+                        </div>
+                    </div>
+
+                    <div class="members-container">
+                        <p class="loading">
+                            Chargement des membres...
+                        </p>
+                    </div>
+                `;
+
+                container.appendChild(teamSection);
+
+                const membersContainer =
+                    teamSection.querySelector(".members-container");
+
+                await loadMembers(team.id, membersContainer);
+            }
+        }
+
+        async function loadMembers(teamId, container) {
+            const {
+                data: members,
+                error
+            } = await supabaseClient
+                .from("media_members")
+                .select("*")
+                .eq("team_id", teamId)
+                .eq("published", true)
+                .order("display_order", {
+                    ascending: true
+                });
+
+            if (error) {
+                console.error(error);
+                container.innerHTML = "";
+                return;
+            }
+
+            if (!members || members.length === 0) {
+                container.innerHTML = "";
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="collapsible-header" onclick="toggleCollapse(this)">
+                    <h3>Membres de l'équipe</h3>
+                    <span class="chevron">⌄</span>
+                </div>
+                <div class="members-grid"></div>
+            `;
+
+            const grid = container.querySelector(".members-grid");
+
+            members.forEach(member => {
+                const memberCard = document.createElement("article");
+
+                memberCard.className = "member-card";
+
+                const memberImage = member.photo_url
+                    ? `
+                        <img
+                            src="${member.photo_url}"
+                            alt="${escapeHTML(member.name)}">
+                    `
+                    : `
+                        <div class="member-placeholder">
+                            👤
+                        </div>
+                    `;
+
+                memberCard.innerHTML = `
+                    ${memberImage}
+
+                    <div class="member-content">
+                        <h4>${escapeHTML(member.name)}</h4>
+
+                        ${
+                            member.role
+                                ? `
+                                    <p class="member-role">
+                                        ${escapeHTML(member.role)}
+                                    </p>
+                                `
+                                : ""
+                        }
+
+                        ${
+                            member.biography
+                                ? `
+                                    <p>
+                                        ${escapeHTML(member.biography)}
+                                    </p>
+                                `
+                                : ""
+                        }
+                    </div>
+                `;
+
+                grid.appendChild(memberCard);
+            });
+        }
+
+        function escapeHTML(text) {
+            if (!text) {
+                return "";
+            }
+
+            return String(text)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        loadTeams();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo1.png">
+<title>Web FM — Claudel média</title>
+
+<link rel="stylesheet" href="style.css?v=15">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="public.js"></script>
+
+<style>
+
+    .fm-intro {
+        max-width: 720px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.7;
+        margin-bottom: 40px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .fm-choices {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 46px;
+    }
+
+    .fm-choice {
+        display: block;
+        background: var(--surface);
+        border-radius: 22px;
+        padding: 30px;
+        border: 1px solid rgba(38,35,42,.06);
+        box-shadow: 0 12px 30px rgba(38,35,42,.06);
+        text-decoration: none;
+        color: var(--ink);
+        transition: transform .2s, box-shadow .2s;
+    }
+
+    .fm-choice:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 18px 36px rgba(38,35,42,.12);
+    }
+
+    .fm-choice .fm-icon {
+        width: 62px;
+        height: 62px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--primary), var(--yellow));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        margin-bottom: 18px;
+    }
+
+    .fm-choice .fm-icon img {
+        width: 44px;
+        height: 44px;
+        object-fit: contain;
+        display: block;
+    }
+
+    .fm-choice h2 {
+        font-size: 21px;
+        margin-bottom: 8px;
+    }
+
+    .fm-choice p {
+        color: var(--muted);
+        font-size: 14.5px;
+        line-height: 1.6;
+        margin-bottom: 16px;
+    }
+
+    .fm-choice .fm-go {
+        display: inline-block;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: var(--primary-dark);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .fm-explain {
+        max-width: 780px;
+        background: var(--surface);
+        border-radius: 24px;
+        border: 1px solid rgba(38,35,42,.06);
+        box-shadow: 0 14px 34px rgba(38,35,42,.06);
+        padding: 34px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .fm-explain h3 {
+        font-size: 20px;
+        margin-bottom: 18px;
+        color: var(--ink);
+    }
+
+    .fm-explain p {
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+        margin-bottom: 14px;
+    }
+
+    .fm-explain p:last-child {
+        margin-bottom: 0;
+    }
+
+    .fm-explain strong {
+        color: var(--ink);
+    }
+
+</style>
+
+</head>
+
+<body>
+
+<button id="menuToggle" class="menu-toggle">
+    <span>☰</span>
+</button>
+
+<aside id="sidebar" class="sidebar"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("sidebar").classList.add("collapsed");}</script>
+
+    <div class="sidebar-label">Navigation</div>
+
+    <nav id="sidebarNav">
+        <a href="index.html">
+            <span class="icon"><img src="home.png" alt="Accueil" onerror="this.outerHTML='🏠'"></span>
+            <span class="text">Accueil</span>
+        </a>
+
+        <a href="journaux.html">
+            <span class="icon"><img src="journaux.png" alt="Journaux" onerror="this.outerHTML='📰'"></span>
+            <span class="text">Journaux</span>
+        </a>
+        <a href="audio.html">
+            <span class="icon"><img src="audio.png" alt="Webradio" onerror="this.outerHTML='📻'"></span>
+            <span class="text">Webradio</span>
+        </a>
+        <a href="videos.html">
+            <span class="icon"><img src="video.png" alt="Web TV" onerror="this.outerHTML='🎥'"></span>
+            <span class="text">Web TV</span>
+        </a>
+        <a href="team.html">
+            <span class="icon"><img src="team.png" alt="Nos équipes" onerror="this.outerHTML='👥'"></span>
+            <span class="text">Nos équipes</span>
+        </a>
+        <a href="suggestions.html">
+            <span class="icon"><img src="suggestions.png" alt="Boîte à idées" onerror="this.outerHTML='💡'"></span>
+            <span class="text">Boîte à idées</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-footer-text">© 2026 Claudel média</div>
+    </div>
+
+</aside>
+
+<div id="pageContent" class="page-content"><script>if(localStorage.getItem("sidebarCollapsed")==="true"){document.getElementById("pageContent").classList.add("expanded");}</script>
+
+<section class="page-hero">
+    <div class="page-live">
+        <span class="page-live-dot"></span>
+        Claudel média
+    </div>
+
+    <h1>Web FM</h1>
+    <p>Toute l'audio de Claudel média, au même endroit.</p>
+</section>
+
+<main class="container">
+
+    <p class="fm-intro">
+        Web FM regroupe les deux façons d'écouter Claudel média : nos émissions
+        radio en direct de l'ambiance du lycée, et nos podcasts à écouter
+        quand tu veux. Choisis ta destination ci-dessous.
+    </p>
+
+    <div class="fm-choices">
+
+        <a class="fm-choice" href="radio.html">
+            <div class="fm-icon"><img src="radio.png" alt="Émissions" onerror="this.outerHTML='📻'"></div>
+            <h2>Émissions</h2>
+            <p>
+                Les émissions enregistrées par nos équipes, avec des thèmes,
+                des invités et un ton proche de la vraie radio.
+            </p>
+            <span class="fm-go">Écouter les émissions →</span>
+        </a>
+
+        <a class="fm-choice" href="podcasts.html">
+            <div class="fm-icon"><img src="podcast.png" alt="Podcasts" onerror="this.outerHTML='🎙️'"></div>
+            <h2>Podcasts</h2>
+            <p>
+                Des séries plus courtes et plus ciblées, pensées pour être
+                écoutées à ton rythme, épisode par épisode.
+            </p>
+            <span class="fm-go">Écouter les podcasts →</span>
+        </a>
+
+    </div>
+
+    <div class="fm-explain">
+
+        <h3>Radio ou podcast, quelle différence ?</h3>
+
+        <p>
+            Une <strong>émission radio</strong>, c'est le format classique :
+            elle suit souvent un rythme régulier (une émission par semaine ou
+            par période, par exemple), avec plusieurs rubriques, un peu
+            comme une vraie station de radio. C'est l'ambiance et le ton
+            direct qui priment.
+        </p>
+
+        <p>
+            Un <strong>podcast</strong>, c'est plus libre : chaque série
+            explore un sujet précis, en quelques épisodes, sans contrainte de
+            durée ou de grille de programme. C'est fait pour être écouté à
+            son rythme, épisode après épisode.
+        </p>
+
+        <p>
+            En résumé : la radio, c'est l'émission qui rassemble plusieurs
+            sujets dans un même rendez-vous. Le podcast, c'est une série
+            dédiée à un thème, à écouter quand on veut.
+        </p>
+
+    </div>
+
+</main>
+
+<footer>
+    © 2026 Claudel média
+</footer>
+
+</div>
+
+</body>
+</html>

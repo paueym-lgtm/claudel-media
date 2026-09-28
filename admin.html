@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="icon" type="image/png" href="logo1.png">
+    <title>Claudel média — Administration</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, #3b0000, transparent 40%),
+                radial-gradient(circle at bottom right, #220000, transparent 40%),
+                #080808;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 430px;
+            padding: 25px;
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 38px;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .logo span {
+            color: #e50914;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .login-box {
+            background: #141414;
+            border: 1px solid #292929;
+            border-radius: 18px;
+            padding: 30px;
+            box-shadow: 0 25px 80px rgba(0,0,0,.6);
+        }
+
+        h1 {
+            font-size: 25px;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            background: #090909;
+            color: white;
+            border: 1px solid #333;
+            border-radius: 9px;
+            outline: none;
+            margin-bottom: 18px;
+        }
+
+        input:focus {
+            border-color: #e50914;
+        }
+
+        .password-wrap {
+            position: relative;
+        }
+
+        .password-wrap input {
+            padding-right: 46px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            top: 0;
+            bottom: 18px;
+            right: 4px;
+            width: 40px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .toggle-password:hover {
+            color: white;
+        }
+
+        .toggle-password.is-visible {
+            color: #e50914;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #e50914;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #ff1824;
+        }
+
+        button:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
+        .message {
+            display: none;
+            margin-top: 18px;
+            padding: 13px;
+            border-radius: 9px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .error {
+            display: block;
+            background: #3b1010;
+            color: #ff7777;
+            border: 1px solid #701c1c;
+        }
+
+        .back {
+            display: block;
+            text-align: center;
+            margin-top: 22px;
+            color: #777;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back:hover {
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="logo">
+        Claudel <span>média</span>
+    </div>
+
+    <div class="subtitle">
+        Espace administration
+    </div>
+
+    <div class="login-box">
+
+        <h1>Connexion</h1>
+
+        <form id="loginForm">
+
+            <label for="email">Adresse e-mail</label>
+
+            <input
+                id="email"
+                type="email"
+                placeholder="ton@email.com"
+                required
+            >
+
+            <label for="password">Mot de passe</label>
+
+            <div class="password-wrap">
+                <input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    required
+                >
+                <button type="button" id="togglePassword" class="toggle-password" aria-label="Afficher le mot de passe">
+                    👁
+                </button>
+            </div>
+
+            <button id="loginButton" type="submit">
+                Se connecter
+            </button>
+
+        </form>
+
+        <div id="message" class="message"></div>
+
+    </div>
+
+    <a href="index.html" class="back">
+        ← Retour à Claudel média
+    </a>
+
+</div>
+
+<script>
+
+const form = document.getElementById("loginForm");
+const email = document.getElementById("email");
+const password = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
+
+togglePassword.addEventListener("click", function() {
+
+    const isVisible = password.type === "text";
+
+    password.type = isVisible ? "password" : "text";
+
+    togglePassword.textContent = isVisible ? "👁" : "🙈";
+    togglePassword.classList.toggle("is-visible", !isVisible);
+    togglePassword.setAttribute(
+        "aria-label",
+        isVisible ? "Afficher le mot de passe" : "Masquer le mot de passe"
+    );
+
+});
+
+const button = document.getElementById("loginButton");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    button.disabled = true;
+    button.textContent = "Connexion...";
+
+    message.className = "message";
+
+    const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+            email: email.value.trim(),
+            password: password.value
+        });
+
+    if (error) {
+
+        console.error(error);
+
+        message.textContent = "❌ " + error.message;
+        message.className = "message error";
+
+        button.disabled = false;
+        button.textContent = "Se connecter";
+
+        return;
+    }
+
+    if (!data.user) {
+
+        message.textContent =
+            "❌ Connexion réussie mais aucun utilisateur trouvé.";
+
+        message.className = "message error";
+
+        button.disabled = false;
+        button.textContent = "Se connecter";
+
+        return;
+    }
+
+    /*
+       VÉRIFICATION ADMIN
+       On vérifie que l'email connecté fait bien partie
+       de la table admin_users avant d'autoriser l'accès
+       au dashboard. Si ce n'est pas le cas, on déconnecte
+       immédiatement la session.
+    */
+
+    const userEmail = (data.user.email || "").toLowerCase();
+
+    const { data: adminRow, error: adminError } =
+        await supabaseClient
+            .from("admin_users")
+            .select("email")
+            .ilike("email", userEmail)
+            .maybeSingle();
+
+    if (adminError || !adminRow) {
+
+        await supabaseClient.auth.signOut();
+
+        message.textContent =
+            "❌ Ce compte n'a pas accès à l'administration.";
+
+        message.className = "message error";
+
+        button.disabled = false;
+        button.textContent = "Se connecter";
+
+        return;
+    }
+
+    window.location.href = "dashboard.html";
+
+});
+
+</script>
+
+</body>
+</html>
