@@ -275,18 +275,17 @@ function enhanceReadMore(root) {
         if (p.dataset.readmore) return;
         p.dataset.readmore = "1";
 
-        if (!p.textContent.trim()) return;
+        const text = p.textContent.trim();
+        if (!text) return;
 
         p.classList.add("card-desc");
-
-        // Le texte est-il coupé par la limite de lignes ?
-        if (p.scrollHeight <= p.clientHeight + 1) return;
 
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "read-more-btn";
         btn.textContent = "Lire plus";
         btn.setAttribute("aria-expanded", "false");
+        btn.style.display = "none";
 
         btn.onclick = () => {
             const open = p.classList.toggle("expanded");
@@ -295,6 +294,24 @@ function enhanceReadMore(root) {
         };
 
         p.insertAdjacentElement("afterend", btn);
+
+        // Affiche le bouton seulement si le texte est vraiment coupé.
+        const check = () => {
+            if (p.classList.contains("expanded")) return;
+            const truncated = p.scrollHeight > p.clientHeight + 1;
+            // Si la carte n'est pas encore mesurable, on se base sur la longueur.
+            const unmeasured = p.clientHeight === 0 && text.length > 110;
+            btn.style.display = (truncated || unmeasured) ? "block" : "none";
+        };
+
+        check();
+        requestAnimationFrame(check);
+        window.addEventListener("load", check);
+        window.addEventListener("resize", check);
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(check);
+        }
 
     });
 
