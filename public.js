@@ -257,6 +257,47 @@ function enhanceScrollGrids(root) {
 
     });
 
+    enhanceReadMore(scope);
+
+}
+
+
+// ==========================================
+// BOUTON "LIRE PLUS" (descriptions longues des cartes)
+// ==========================================
+
+function enhanceReadMore(root) {
+
+    const scope = root || document;
+
+    scope.querySelectorAll(".card > p").forEach(p => {
+
+        if (p.dataset.readmore) return;
+        p.dataset.readmore = "1";
+
+        if (!p.textContent.trim()) return;
+
+        p.classList.add("card-desc");
+
+        // Le texte est-il coupé par la limite de lignes ?
+        if (p.scrollHeight <= p.clientHeight + 1) return;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "read-more-btn";
+        btn.textContent = "Lire plus";
+        btn.setAttribute("aria-expanded", "false");
+
+        btn.onclick = () => {
+            const open = p.classList.toggle("expanded");
+            btn.textContent = open ? "Lire moins" : "Lire plus";
+            btn.setAttribute("aria-expanded", open ? "true" : "false");
+        };
+
+        p.insertAdjacentElement("afterend", btn);
+
+    });
+
 }
 
 
